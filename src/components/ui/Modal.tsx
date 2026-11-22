@@ -31,6 +31,8 @@ export interface ModalProps {
   children?: ReactNode
   footer?: ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** Диалог по центру пошире — для карточек с блоками. */
+  wide?: boolean
 }
 
 export function Modal({
@@ -44,6 +46,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
+  wide = false,
 }: ModalProps) {
   const logoSrc = fileHref(typeof logo === 'string' ? logo : null)
   const hasBody = children != null && children !== false
@@ -194,7 +197,10 @@ export function Modal({
           initial={{ y: 12, opacity: 0 }}
           animate={open ? { y: 0, opacity: 1 } : { y: 8, opacity: 0 }}
           transition={{ duration: 0.2, ease: [0.2, 0.9, 0.3, 1] }}
-          className="relative flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden border-t-4 border-indigo-500 bg-surface shadow-lift"
+          className={cn(
+            'relative flex max-h-[92vh] w-full flex-col overflow-hidden border-t-4 border-indigo-500 bg-surface shadow-lift',
+            wide ? 'max-w-2xl' : 'max-w-md',
+          )}
         >
           {header}
           {body}

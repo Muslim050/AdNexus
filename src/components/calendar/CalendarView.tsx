@@ -2,8 +2,14 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { createBooking } from '@/app/actions/bookings'
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Plus,
+} from 'lucide-react'
+import { createBooking, updateBooking } from '@/app/actions/bookings'
 import { FormDrawer } from '@/components/forms/CreateDrawer'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
@@ -63,6 +69,13 @@ export function CalendarView({
     round: 0,
   })
   const [opened, setOpened] = useState<CalendarSlot | null>(null)
+  const [editing, setEditing] = useState<{
+    open: boolean
+    slot: CalendarSlot | null
+    round: number
+  }>({ open: false, slot: null, round: 0 })
+  const startEdit = (slot: CalendarSlot) =>
+    setEditing((e) => ({ open: true, slot, round: e.round + 1 }))
 
   const canCreate = canBook && formats.some((f) => f.isActive)
   const book = (date: string, time = '10:00') =>
@@ -226,10 +239,40 @@ export function CalendarView({
         </FormDrawer>
       )}
 
+      {canBook && editing.slot && (
+        <FormDrawer
+          open={editing.open}
+          onClose={() => setEditing((e) => ({ ...e, open: false }))}
+          round={editing.round}
+          title="Изменить бронь"
+          description={`${editing.slot.formatName} · ${longDay(editing.slot.date)}`}
+          icon={Pencil}
+          action={updateBooking}
+          submitLabel="Сохранить"
+        >
+          {(state) =>
+            editing.slot && (
+              <BookingFields
+                initial={editing.slot}
+                state={state}
+                date={editing.slot.date}
+                time={editing.slot.time}
+                formats={formats}
+                managers={managers}
+                advertisers={advertisers}
+                contracts={contracts}
+                currentUserId={currentUserId}
+              />
+            )
+          }
+        </FormDrawer>
+      )}
+
       <SlotDetails
         slot={opened}
-        canDelete={canBook}
+        canEdit={canBook}
         onClose={() => setOpened(null)}
+        onEdit={startEdit}
       />
     </div>
   )

@@ -11,7 +11,10 @@ export interface CalendarSlot {
   formatId: string
   formatName: string
   color: string
+  managerId: string
   managerName: string
+  advertiserId: string | null
+  contractId: string | null
   advertiserName: string | null
   contractNumber: string | null
   contractDiscount: string | null

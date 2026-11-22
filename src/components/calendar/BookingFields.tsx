@@ -42,7 +42,21 @@ export interface ContractChoice {
   file: AttachedFile | null
 }
 
+/** Значения брони при правке. */
+export interface BookingInitial {
+  id: string
+  managerId: string
+  formatId: string
+  advertiserId: string | null
+  contractId: string | null
+  campaignName: string
+  comment: string
+  file: AttachedFile | null
+}
+
 interface Props {
+  /** Правка существующей брони — поля заполнены её значениями. */
+  initial?: BookingInitial
   state: FormState
   date: string
   time: string
@@ -58,6 +72,7 @@ interface Props {
  * подтягиваются номер, скидка, срок, файл и название кампании.
  */
 export function BookingFields({
+  initial,
   state,
   date,
   time,
@@ -68,9 +83,9 @@ export function BookingFields({
   currentUserId,
 }: Props) {
   const { errors } = state
-  const [advertiserId, setAdvertiserId] = useState('')
-  const [contractId, setContractId] = useState('')
-  const [campaignName, setCampaignName] = useState('')
+  const [advertiserId, setAdvertiserId] = useState(initial?.advertiserId ?? '')
+  const [contractId, setContractId] = useState(initial?.contractId ?? '')
+  const [campaignName, setCampaignName] = useState(initial?.campaignName ?? '')
 
   // Только бренды с договорами: без договора слот не забронировать.
   const withContracts = advertisers.filter((a) =>
@@ -99,6 +114,7 @@ export function BookingFields({
 
   return (
     <>
+      {initial && <input type="hidden" name="id" value={initial.id} />}
       <div className="grid gap-5 sm:grid-cols-[1fr_140px]">
         <Field label="Дата" required error={errors?.date}>
           <DatePicker
@@ -121,7 +137,8 @@ export function BookingFields({
           name="managerId"
           placeholder="Выберите сотрудника"
           defaultValue={
-            managers.some((m) => m.id === currentUserId) ? currentUserId : ''
+            initial?.managerId ??
+            (managers.some((m) => m.id === currentUserId) ? currentUserId : '')
           }
           invalid={!!errors?.managerId}
           options={managers.map((m) => ({
@@ -136,9 +153,11 @@ export function BookingFields({
         <SelectField
           name="formatId"
           placeholder="Выберите формат"
+          defaultValue={initial?.formatId}
           invalid={!!errors?.formatId}
           options={formats
-            .filter((f) => f.isActive)
+            // Отключённый формат остаётся в списке у брони, которая на нём стоит.
+            .filter((f) => f.isActive || f.id === initial?.formatId)
             .map((f) => ({ value: f.id, label: f.name, color: f.color }))}
         />
       </Field>
@@ -223,11 +242,15 @@ export function BookingFields({
       </Field>
 
       <Field label="Файл" hint="Креатив, ТЗ или другие материалы слота.">
-        <FileDrop name="file" folder="bookings" />
+        <FileDrop
+          name="file"
+          folder="bookings"
+          defaultValue={initial?.file ?? null}
+        />
       </Field>
 
       <Field label="Комментарий" error={errors?.comment}>
-        <Textarea name="comment" rows={3} />
+        <Textarea name="comment" rows={3} defaultValue={initial?.comment} />
       </Field>
     </>
   )

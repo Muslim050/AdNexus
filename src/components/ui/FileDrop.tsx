@@ -2,7 +2,7 @@
 
 import { useRef, useState, type DragEvent } from 'react'
 import { upload } from '@vercel/blob/client'
-import { CloudUpload, FileText, X } from 'lucide-react'
+import { CloudUpload, Download, FileText, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import {
   MAX_FILE_BYTES,
@@ -234,5 +234,42 @@ export function FileLink({ file }: { file: AttachedFile }) {
         {formatBytes(file.size)}
       </span>
     </a>
+  )
+}
+
+/** Файл карточкой: иконка, имя, размер и действия «Открыть» / «Скачать». */
+export function FileCard({
+  label,
+  file,
+}: {
+  label: string
+  file: AttachedFile
+}) {
+  return (
+    <div className="flex items-center gap-3 border border-line bg-surface px-3 py-2.5">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center bg-indigo-50 text-indigo-600">
+        <FileText size={19} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="eyebrow text-ink-muted">{label}</p>
+        <a
+          href={fileHref(file)}
+          target="_blank"
+          rel="noopener"
+          className="mt-0.5 block truncate text-sm font-semibold text-ink hover:text-indigo-600 hover:underline"
+        >
+          {file.name}
+        </a>
+        <p className="text-xs text-ink-muted tnum">{formatBytes(file.size)}</p>
+      </div>
+      <a
+        href={fileHref(file, true)}
+        aria-label={`Скачать ${file.name}`}
+        title="Скачать"
+        className="flex h-9 w-9 shrink-0 items-center justify-center border border-line text-ink-soft transition-colors hover:border-ink hover:text-ink focus-ring"
+      >
+        <Download size={16} />
+      </a>
+    </div>
   )
 }
