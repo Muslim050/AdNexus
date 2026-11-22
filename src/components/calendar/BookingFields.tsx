@@ -11,13 +11,16 @@ import { BOOKING_STATUS, type BookingStatus } from '@/lib/bookings'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { formatPeriod } from '@/lib/dates'
 import type { AttachedFile } from '@/lib/files'
-import { formatPercent, type FormState } from '@/lib/forms'
+import { formatPercent, formatSum, type FormState } from '@/lib/forms'
+import { suggestedAmount } from '@/lib/pricing'
 
 export interface FormatChoice {
   id: string
   name: string
   color: string
   isActive: boolean
+  impressions: number
+  pricePerImpression: string
 }
 
 export interface ManagerChoice {
@@ -47,6 +50,7 @@ export interface ContractChoice {
 export interface BookingInitial {
   id: string
   status: BookingStatus
+  amount: string
   managerId: string | null
   formatId: string
   advertiserId: string | null
@@ -104,6 +108,14 @@ export function BookingFields({
   const [campaignName, setCampaignName] = useState(
     initial?.campaignName ?? soleContract?.campaignName ?? '',
   )
+  const [formatId, setFormatId] = useState(initial?.formatId ?? '')
+  // Сумму подставляем расчётом, пока её не ввели руками.
+  const [amount, setAmount] = useState(
+    initial && Number(initial.amount) ? String(Number(initial.amount)) : '',
+  )
+  const [amountTouched, setAmountTouched] = useState(
+    Boolean(initial && Number(initial.amount)),
+  )
 
   // Только бренды с договорами: без договора слот не забронировать.
   const withContracts = advertisers.filter((a) =>
@@ -113,6 +125,13 @@ export function BookingFields({
     (c) => c.advertiserId === advertiserId,
   )
   const contract = contracts.find((c) => c.id === contractId)
+  const format = formats.find((f) => f.id === formatId)
+  const suggestion = suggestedAmount(format, contract?.discount)
+  const shownAmount = amountTouched
+    ? amount
+    : suggestion
+      ? String(suggestion)
+      : ''
 
   const pickContract = (id: string) => {
     const next = contracts.find((c) => c.id === id)
@@ -188,7 +207,8 @@ export function BookingFields({
         <SelectField
           name="formatId"
           placeholder="Выберите формат"
-          defaultValue={initial?.formatId}
+          value={formatId}
+          onChange={setFormatId}
           invalid={!!errors?.formatId}
           options={formats
             // Отключённый формат остаётся в списке у брони, которая на нём стоит.
@@ -284,6 +304,64 @@ export function BookingFields({
           aria-invalid={!!errors?.campaignName || undefined}
         />
       </Field>
+
+      {/* Сумма: admin вводит или берёт расчёт; рекламодателю — расчёт. */}
+      {isAdvertiser ? (
+        <div className="flex items-center justify-between border border-line bg-paper/70 px-4 py-3">
+          <span>
+            <span className="eyebrow block text-ink-muted">Сумма</span>
+            <span className="text-xs text-ink-muted">
+              Пакет формата за вычетом скидки по договору
+            </span>
+          </span>
+          <span className="font-display text-lg font-bold text-ink tnum">
+            {formatSum(suggestion)}
+          </span>
+        </div>
+      ) : (
+        <Field
+          label="Сумма, сум"
+          error={errors?.amount}
+          hint={
+            format && suggestion
+              ? `По пакету: ${formatSum(format.impressions * Number(format.pricePerImpression))}${
+                  Number(contract?.discount)
+                    ? ` − ${formatPercent(contract?.discount)} = ${formatSum(suggestion)}`
+                    : ''
+                }`
+              : 'Пакет формата минус скидка по договору — подставится сам.'
+          }
+        >
+          <div className="flex gap-2">
+            <Input
+              name="amount"
+              inputMode="decimal"
+              value={shownAmount}
+              onChange={(e) => {
+                setAmountTouched(true)
+                setAmount(e.target.value)
+              }}
+              placeholder="0"
+              className="tnum"
+              aria-invalid={!!errors?.amount || undefined}
+            />
+            {amountTouched &&
+              suggestion > 0 &&
+              Number(amount) !== suggestion && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAmountTouched(false)
+                    setAmount('')
+                  }}
+                  className="h-11 shrink-0 border border-ink/20 px-3 text-[13px] font-semibold text-ink-soft transition-colors hover:border-ink hover:text-ink focus-ring"
+                >
+                  По расчёту
+                </button>
+              )}
+          </div>
+        </Field>
+      )}
 
       <Field label="Файл" hint="Креатив, ТЗ или другие материалы слота.">
         <FileDrop

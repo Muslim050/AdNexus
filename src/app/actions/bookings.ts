@@ -4,12 +4,25 @@ import { revalidatePath } from 'next/cache'
 import { and, eq, inArray } from 'drizzle-orm'
 import { del } from '@vercel/blob'
 import { getDb } from '@/db'
-import { bookings, contracts, placementFormats, users } from '@/db/schema'
+import {
+  bookingPayments,
+  bookings,
+  contracts,
+  placementFormats,
+  users,
+} from '@/db/schema'
 import { requireRole } from '@/lib/auth'
 import { isBookingStatus, type BookingStatus } from '@/lib/bookings'
 import { formatDay } from '@/lib/dates'
 import { parseAttachedFile, type AttachedFile } from '@/lib/files'
-import { dateField, isUniqueViolation, text, type FormState } from '@/lib/forms'
+import {
+  dateField,
+  isUniqueViolation,
+  numberField,
+  text,
+  type FormState,
+} from '@/lib/forms'
+import { suggestedAmount } from '@/lib/pricing'
 import type { SessionUser } from '@/lib/roles'
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
@@ -24,6 +37,7 @@ interface BookingValues {
   campaignName: string
   comment: string
   file: AttachedFile | null
+  amount: string
 }
 
 /**
@@ -69,7 +83,9 @@ async function readBooking(
   }
   if (!values.contractId) errors.contractId = 'Выберите договор'
   if (!values.campaignName) errors.campaignName = 'Укажите рекламную кампанию'
-  if (Object.keys(errors).length || !date) {
+  const typedAmount = isAdvertiser ? 0 : numberField(fd, 'amount')
+  if (typedAmount === false) errors.amount = 'Сумма — число, например 1 500 000'
+  if (Object.keys(errors).length || !date || typedAmount === false) {
     return { ok: false, state: { errors } }
   }
 
@@ -79,6 +95,8 @@ async function readBooking(
       .select({
         name: placementFormats.name,
         isActive: placementFormats.isActive,
+        impressions: placementFormats.impressions,
+        pricePerImpression: placementFormats.pricePerImpression,
       })
       .from(placementFormats)
       .where(eq(placementFormats.id, values.formatId))
@@ -98,7 +116,7 @@ async function readBooking(
           .then((r) => r.length > 0)
       : Promise.resolve(true),
     db
-      .select({ id: contracts.id })
+      .select({ id: contracts.id, discount: contracts.discount })
       .from(contracts)
       .where(
         and(
@@ -123,7 +141,15 @@ async function readBooking(
       },
     }
   }
-  return { ok: true, values: { ...values, date }, formatName: format.name }
+  // Сумму вводит admin; заявке рекламодателя считаем её сами: пакет − скидка.
+  const amount = isAdvertiser
+    ? suggestedAmount(format, contract.discount)
+    : typedAmount
+  return {
+    ok: true,
+    values: { ...values, date, amount: amount.toFixed(2) },
+    formatName: format.name,
+  }
 }
 
 const slotTaken = (v: BookingValues, formatName: string): FormState => ({
@@ -288,4 +314,60 @@ export async function deleteBooking(id: string): Promise<FormState> {
     ok: true,
     message: user.role === 'advertiser' ? 'Заявка отменена' : 'Бронь снята',
   }
+}
+
+/** Поступление по брони — в историю выплат. Только admin. */
+export async function addBookingPayment(
+  _prev: FormState,
+  fd: FormData,
+): Promise<FormState> {
+  const user = await requireRole(['admin'])
+  const bookingId = text(fd, 'bookingId', 36)
+  const amount = numberField(fd, 'amount')
+  const date = dateField(fd, 'date')
+  const time = text(fd, 'time', 5)
+  const comment = text(fd, 'comment', 500)
+
+  const errors: Record<string, string> = {}
+  if (amount === false || amount <= 0) errors.amount = 'Сумма больше нуля'
+  if (!date) errors.date = 'Укажите дату'
+  if (!TIME.test(time)) errors.time = 'Укажите время'
+  if (Object.keys(errors).length || amount === false || !date) {
+    return { errors }
+  }
+
+  const [booking] = await getDb()
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1)
+  if (!booking) return { error: 'Бронь не найдена' }
+
+  await getDb()
+    .insert(bookingPayments)
+    .values({
+      bookingId,
+      amount: amount.toFixed(2),
+      // Дата и время — по Ташкенту.
+      paidAt: new Date(`${date}T${time}:00+05:00`),
+      comment,
+      createdBy: user.name,
+    })
+  refresh()
+  return {
+    ok: true,
+    message: `Поступление ${amount.toLocaleString('ru-RU')} сум внесено`,
+  }
+}
+
+/** Удалить ошибочное поступление. Только admin. */
+export async function deleteBookingPayment(id: string): Promise<FormState> {
+  await requireRole(['admin'])
+  const removed = await getDb()
+    .delete(bookingPayments)
+    .where(eq(bookingPayments.id, id))
+    .returning({ id: bookingPayments.id })
+  if (!removed.length) return { error: 'Поступление уже удалено' }
+  refresh()
+  return { ok: true, message: 'Поступление удалено' }
 }

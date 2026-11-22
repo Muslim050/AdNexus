@@ -57,6 +57,13 @@
       "when": 1795376874342,
       "tag": "0007_format_details_media",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795377189753,
+      "tag": "0008_booking_amount_payments",
+      "breakpoints": true
     }
   ]
 }

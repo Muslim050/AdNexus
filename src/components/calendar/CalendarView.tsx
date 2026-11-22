@@ -72,7 +72,10 @@ export function CalendarView({
     time: '10:00',
     round: 0,
   })
-  const [opened, setOpened] = useState<CalendarSlot | null>(null)
+  // Открытую бронь берём из свежих данных по id: после выплаты или смены
+  // статуса сервер присылает обновлённые слоты, и карточка обновляется сама.
+  const [openedId, setOpenedId] = useState<string | null>(null)
+  const opened = slots.find((s) => s.id === openedId) ?? null
   const [editing, setEditing] = useState<{
     open: boolean
     slot: CalendarSlot | null
@@ -203,7 +206,7 @@ export function CalendarView({
           slots={visible}
           canCreate={canCreate}
           onBook={book}
-          onOpen={setOpened}
+          onOpen={(s) => setOpenedId(s.id)}
         />
 
         {formats.length === 0 && (
@@ -286,7 +289,7 @@ export function CalendarView({
       <SlotDetails
         slot={opened}
         role={role}
-        onClose={() => setOpened(null)}
+        onClose={() => setOpenedId(null)}
         onEdit={startEdit}
       />
     </div>

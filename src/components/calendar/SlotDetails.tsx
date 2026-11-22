@@ -3,7 +3,6 @@
 import { useState, useTransition, type ReactNode } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { deleteBooking, setBookingStatus } from '@/app/actions/bookings'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { FileCard } from '@/components/ui/FileDrop'
 import { Modal } from '@/components/ui/Modal'
@@ -20,6 +19,8 @@ import { formatPercent } from '@/lib/forms'
 import { textOn } from '@/lib/palette'
 import type { Role } from '@/lib/roles'
 import { longDay } from '@/lib/week'
+import { PaymentsBlock } from './PaymentsBlock'
+import { StatusChip } from './StatusChip'
 import type { CalendarSlot } from './types'
 
 /**
@@ -170,11 +171,7 @@ export function SlotDetails({
                 {slot.managerName ?? 'менеджер не назначен'}
               </span>
             </span>
-            <span className="shrink-0 bg-white px-2 py-1">
-              <Badge tone={BOOKING_STATUS[status].tone} dot>
-                {BOOKING_STATUS[status].label}
-              </Badge>
-            </span>
+            <StatusChip status={status} />
           </div>
 
           <Block title="Статус" plain>
@@ -203,6 +200,10 @@ export function SlotDetails({
                 )}
               </>
             )}
+          </Block>
+
+          <Block title="Оплата" plain>
+            <PaymentsBlock slot={slot} canEdit={isAdmin} />
           </Block>
 
           <Block title="Размещение">

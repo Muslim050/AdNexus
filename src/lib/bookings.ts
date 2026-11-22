@@ -12,13 +12,13 @@ export type BookingStatus = (typeof BOOKING_STATUSES)[number]
 
 export const BOOKING_STATUS: Record<
   BookingStatus,
-  { label: string; tone: BadgeTone }
+  { label: string; tone: BadgeTone; dot: string }
 > = {
-  sent: { label: 'Отправлен', tone: 'indigo' },
-  received: { label: 'Получен', tone: 'muted' },
-  reviewing: { label: 'Рассматривается', tone: 'warning' },
-  active: { label: 'Активен', tone: 'success' },
-  completed: { label: 'Выполнен', tone: 'muted' },
+  sent: { label: 'Отправлен', tone: 'indigo', dot: '#1E6FD9' },
+  received: { label: 'Получен', tone: 'muted', dot: '#546E7A' },
+  reviewing: { label: 'Рассматривается', tone: 'warning', dot: '#C77800' },
+  active: { label: 'Активен', tone: 'success', dot: '#12894C' },
+  completed: { label: 'Выполнен', tone: 'muted', dot: '#75827B' },
 }
 
 export const isBookingStatus = (v: unknown): v is BookingStatus =>

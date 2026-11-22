@@ -3,6 +3,7 @@ import { and, asc, between, eq, inArray } from 'drizzle-orm'
 import { getDb } from '@/db'
 import {
   advertisers,
+  bookingPayments,
   bookings,
   contracts,
   placementFormats,
@@ -23,6 +24,7 @@ export async function bookingsBetween(from: string, to: string) {
       date: bookings.date,
       time: bookings.time,
       status: bookings.status,
+      amount: bookings.amount,
       campaignName: bookings.campaignName,
       comment: bookings.comment,
       file: bookings.file,
@@ -53,15 +55,48 @@ export async function bookingsBetween(from: string, to: string) {
       asc(placementFormats.position),
     )
 
+  // История выплат — одним запросом на все брони периода.
+  const ids = rows.map((r) => r.id)
+  const payments = ids.length
+    ? await getDb()
+        .select({
+          id: bookingPayments.id,
+          bookingId: bookingPayments.bookingId,
+          amount: bookingPayments.amount,
+          paidAt: bookingPayments.paidAt,
+          comment: bookingPayments.comment,
+          createdBy: bookingPayments.createdBy,
+        })
+        .from(bookingPayments)
+        .where(inArray(bookingPayments.bookingId, ids))
+        .orderBy(asc(bookingPayments.paidAt), asc(bookingPayments.seq))
+    : []
+  const withPayments = rows.map((r) => {
+    const own = payments
+      .filter((p) => p.bookingId === r.id)
+      .map((p) => ({
+        id: p.id,
+        amount: p.amount,
+        paidAt: p.paidAt.toISOString(),
+        comment: p.comment,
+        createdBy: p.createdBy,
+      }))
+    const paid = own.reduce((sum, p) => sum + Number(p.amount), 0)
+    return { ...r, payments: own, paid: paid.toFixed(2) }
+  })
+
   if (user.role !== 'advertiser') {
-    return rows.map((r) => ({ ...r, masked: false }))
+    return withPayments.map((r) => ({ ...r, masked: false }))
   }
-  return rows.map((r) =>
+  return withPayments.map((r) =>
     r.advertiserId && r.advertiserId === user.advertiserId
       ? { ...r, masked: false }
       : {
           ...r,
           masked: true,
+          amount: '0',
+          paid: '0',
+          payments: [],
           status: 'active' as const,
           campaignName: '',
           comment: '',

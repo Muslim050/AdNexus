@@ -27,6 +27,8 @@ export async function formatOptions() {
       name: placementFormats.name,
       color: placementFormats.color,
       isActive: placementFormats.isActive,
+      impressions: placementFormats.impressions,
+      pricePerImpression: placementFormats.pricePerImpression,
     })
     .from(placementFormats)
     .orderBy(asc(placementFormats.position), asc(placementFormats.name))

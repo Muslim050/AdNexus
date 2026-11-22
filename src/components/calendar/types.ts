@@ -6,6 +6,10 @@ export interface CalendarSlot {
   date: string
   time: string
   status: BookingStatus
+  /** Сумма размещения и оплачено — decimal-строки. */
+  amount: string
+  paid: string
+  payments: BookingPayment[]
   /** Чужой слот для рекламодателя: видно только, что он занят. */
   masked: boolean
   campaignName: string
@@ -25,6 +29,15 @@ export interface CalendarSlot {
   contractStart: string | null
   contractEnd: string | null
   contractFile: AttachedFile | null
+}
+
+export interface BookingPayment {
+  id: string
+  amount: string
+  /** ISO-время оплаты. */
+  paidAt: string
+  comment: string
+  createdBy: string
 }
 
 export type CalendarView = 'week' | 'day'

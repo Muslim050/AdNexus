@@ -189,6 +189,10 @@ export const bookings = pgTable(
     managerId: uuid('manager_id').references(() => users.id),
     /** Воронка брони: Отправлен → Получен → Рассматривается → Активен → Выполнен. */
     status: text('status').$type<BookingStatus>().notNull().default('sent'),
+    /** Сумма размещения, сум. Оплачено — сумма поступлений в booking_payments. */
+    amount: numeric('amount', { precision: 16, scale: 2 })
+      .notNull()
+      .default('0'),
     /** Бренд и договор слота: из договора подтягиваются номер, скидка, файл и срок. */
     advertiserId: uuid('advertiser_id').references(() => advertisers.id),
     contractId: uuid('contract_id').references(() => contracts.id),
@@ -209,4 +213,28 @@ export const bookings = pgTable(
       sql`${t.time} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`,
     ),
   ],
+)
+
+/**
+ * Поступление по брони — история выплат, как в Setanta. Порядок: по дате
+ * оплаты, затем по seq (внесённые в одну минуту не перемешиваются).
+ */
+export const bookingPayments = pgTable(
+  'booking_payments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bookingId: uuid('booking_id')
+      .notNull()
+      .references(() => bookings.id, { onDelete: 'cascade' }),
+    amount: numeric('amount', { precision: 16, scale: 2 }).notNull(),
+    /** Дату и время оплаты задаёт admin — можно задним числом. */
+    paidAt: timestamp('paid_at', { withTimezone: true }).notNull(),
+    seq: bigint('seq', { mode: 'number' })
+      .notNull()
+      .generatedAlwaysAsIdentity(),
+    comment: text('comment').notNull().default(''),
+    createdBy: text('created_by').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('booking_payments_booking_idx').on(t.bookingId, t.paidAt)],
 )
