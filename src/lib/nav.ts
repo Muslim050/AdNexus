@@ -1,66 +1,59 @@
 import {
+  BookOpen,
   Building2,
-  FileText,
+  CalendarDays,
+  ClipboardList,
   LayoutDashboard,
-  LineChart,
-  Megaphone,
-  Store,
-  Users,
   type LucideIcon,
 } from 'lucide-react'
 import type { Role } from './roles'
 
+export { HOME } from './routes'
+
 export interface NavItem {
   href: string
   label: string
+  /** Пояснение раздела — подзаголовок страницы. */
+  description: string
   icon: LucideIcon
   roles: Role[]
 }
 
-export { HOME } from './routes'
-
 export const NAV: NavItem[] = [
   {
-    href: '/campaigns',
-    label: 'Кампании',
-    icon: Megaphone,
-    roles: ['admin', 'viewer', 'advertiser'],
+    href: '/calendar',
+    label: 'Календарь размещений',
+    description: 'Бронирование временных слотов',
+    icon: CalendarDays,
+    roles: ['admin', 'viewer'],
   },
   {
-    href: '/overview',
-    label: 'Обзор',
+    href: '/dashboard',
+    label: 'Дашборд',
+    description: 'Общая статистика и показатели',
     icon: LayoutDashboard,
     roles: ['admin', 'viewer'],
   },
   {
-    href: '/contracts',
-    label: 'Договоры',
-    icon: FileText,
-    roles: ['admin', 'viewer'],
-  },
-  {
-    href: '/placements',
-    label: 'Площадки',
-    icon: Store,
-    roles: ['admin', 'viewer'],
+    href: '/orders',
+    label: 'Заказы и медиапланы',
+    description: 'Планирование и статусы заказов',
+    icon: ClipboardList,
+    roles: ['admin', 'viewer', 'advertiser'],
   },
   {
     href: '/advertisers',
-    label: 'Рекламодатели',
+    label: 'Рекламодатели и бренды',
+    description: 'Бренды, их договоры и реквизиты',
     icon: Building2,
     roles: ['admin', 'viewer'],
   },
   {
-    href: '/users',
-    label: 'Пользователи',
-    icon: Users,
-    roles: ['admin'],
-  },
-  {
-    href: '/reports',
-    label: 'Отчёт',
-    icon: LineChart,
-    roles: ['advertiser'],
+    href: '/directory',
+    label: 'Справочник',
+    description: 'Форматы размещений и их цвета в календаре',
+    icon: BookOpen,
+    roles: ['admin', 'viewer'],
   },
 ]
 

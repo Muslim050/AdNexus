@@ -15,6 +15,13 @@
       "when": 1795374111518,
       "tag": "0001_advertisers_contracts_campaigns",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795374602947,
+      "tag": "0002_calendar_bookings",
+      "breakpoints": true
     }
   ]
 }

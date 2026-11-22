@@ -64,6 +64,6 @@ export async function createCampaign(
     createdBy: user.name,
   })
 
-  revalidatePath('/campaigns')
-  return { ok: true, message: `Кампания «${name}» создана` }
+  revalidatePath('/orders')
+  return { ok: true, message: `Заказ «${name}» создан` }
 }

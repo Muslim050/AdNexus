@@ -24,7 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <AnimatePresence>
         {mobileNav && (
           <motion.div
-            className="fixed inset-x-0 bottom-0 top-16 z-40 lg:hidden"
+            className="fixed inset-x-0 bottom-0 top-16 z-40 xl:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

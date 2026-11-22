@@ -15,69 +15,88 @@ import type { FormState } from '@/lib/forms'
 
 type Action = (prev: FormState, fd: FormData) => Promise<FormState>
 
-interface CreateDrawerProps {
-  /** Надпись на кнопке, открывающей панель. */
-  label: string
+interface FormDrawerProps {
+  open: boolean
+  onClose: () => void
+  /** Меняется при каждом открытии — форма монтируется заново, без старых ошибок. */
+  round: number
   title: string
   description?: string
   icon: LucideIcon
   action: Action
   submitLabel: string
-  /** Кнопку можно заблокировать — например, пока нет рекламодателей. */
-  disabled?: boolean
-  disabledHint?: string
   children: (state: FormState) => ReactNode
 }
 
-/**
- * Кнопка «Создать» и боковая панель с формой. Форма монтируется заново
- * при каждом открытии, поэтому старые ошибки и значения не всплывают.
- */
-export function CreateDrawer({
-  label,
+/** Боковая панель с формой, открытием управляет родитель. */
+export function FormDrawer({
+  open,
+  onClose,
+  round,
   title,
   description,
   icon,
   action,
   submitLabel,
+  children,
+}: FormDrawerProps) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      description={description}
+      icon={icon}
+    >
+      <DrawerForm
+        key={round}
+        action={action}
+        submitLabel={submitLabel}
+        onDone={onClose}
+      >
+        {children}
+      </DrawerForm>
+    </Modal>
+  )
+}
+
+type CreateDrawerProps = Omit<FormDrawerProps, 'open' | 'onClose' | 'round'> & {
+  /** Надпись на кнопке, открывающей панель. */
+  label: string
+  /** Кнопку можно заблокировать — например, пока нет рекламодателей. */
+  disabled?: boolean
+  disabledHint?: string
+}
+
+/** Кнопка «Создать» и боковая панель с формой. */
+export function CreateDrawer({
+  label,
   disabled,
   disabledHint,
-  children,
+  ...drawer
 }: CreateDrawerProps) {
   const [open, setOpen] = useState(false)
   const [round, setRound] = useState(0)
 
-  const show = () => {
-    setRound((r) => r + 1)
-    setOpen(true)
-  }
-
   return (
     <>
       <Button
-        onClick={show}
+        onClick={() => {
+          setRound((r) => r + 1)
+          setOpen(true)
+        }}
         disabled={disabled}
         title={disabled ? disabledHint : undefined}
       >
         <Plus size={17} />
         {label}
       </Button>
-      <Modal
+      <FormDrawer
+        {...drawer}
         open={open}
         onClose={() => setOpen(false)}
-        title={title}
-        description={description}
-        icon={icon}
-      >
-        <DrawerForm
-          key={round}
-          action={action}
-          submitLabel={submitLabel}
-          onDone={() => setOpen(false)}
-        >
-          {children}
-        </DrawerForm>
-      </Modal>
+        round={round}
+      />
     </>
   )
 }

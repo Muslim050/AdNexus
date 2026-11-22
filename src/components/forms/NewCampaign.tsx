@@ -37,12 +37,12 @@ interface Props {
 export function NewCampaign({ advertisers, contracts }: Props) {
   return (
     <CreateDrawer
-      label="Создать кампанию"
-      title="Новая кампания"
-      description="Кампания оформляется по договору рекламодателя."
+      label="Создать заказ"
+      title="Новый заказ"
+      description="Заказ оформляется по договору рекламодателя."
       icon={Megaphone}
       action={createCampaign}
-      submitLabel="Создать кампанию"
+      submitLabel="Создать заказ"
       disabled={contracts.length === 0}
       disabledHint="Сначала добавьте договор рекламодателю"
     >

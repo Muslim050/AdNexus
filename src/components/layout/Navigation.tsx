@@ -23,7 +23,7 @@ export function DesktopNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="hidden h-full items-stretch lg:flex">
+    <nav className="hidden h-full items-stretch xl:flex">
       {items.map((it, index) => {
         const active = isActive(pathname, it.href)
         return (
@@ -32,7 +32,7 @@ export function DesktopNav() {
             href={it.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'group relative flex items-center gap-2.5 px-4 text-[13.5px] font-semibold transition-colors focus-ring',
+              'group relative flex items-center gap-2 px-3 text-[13px] font-semibold transition-colors focus-ring',
               active ? 'text-white' : 'text-white/55 hover:text-white',
             )}
           >

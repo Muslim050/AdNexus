@@ -10,10 +10,10 @@ import { listCampaigns } from '@/lib/data/campaigns'
 import { contractOptions } from '@/lib/data/contracts'
 import { formatMoment, formatPeriod } from '@/lib/dates'
 
-export const metadata: Metadata = { title: 'Кампании' }
+export const metadata: Metadata = { title: 'Заказы и медиапланы' }
 
 export default async function Page() {
-  const user = await requireSection('/campaigns')
+  const user = await requireSection('/orders')
   const canCreate = user.role === 'admin'
   const [rows, advertisers, contracts] = await Promise.all([
     listCampaigns(),
@@ -27,8 +27,8 @@ export default async function Page() {
   return (
     <>
       <PageHeader
-        title="Кампании"
-        subtitle="Рекламные кампании брендов, оформленные по договорам."
+        title="Заказы и медиапланы"
+        subtitle="Заказы брендов, оформленные по договорам."
       >
         {rows.length > 0 && create}
       </PageHeader>
@@ -36,11 +36,11 @@ export default async function Page() {
       {rows.length === 0 ? (
         <EmptyState
           icon={Megaphone}
-          title="Кампаний пока нет"
+          title="Заказов пока нет"
           description={
             canCreate && contracts.length === 0
-              ? 'Кампания создаётся по договору. Сначала добавьте рекламодателя и договор.'
-              : 'Здесь появятся кампании брендов.'
+              ? 'Заказ оформляется по договору. Сначала добавьте рекламодателя и договор в разделе «Рекламодатели и бренды».'
+              : 'Здесь появятся заказы брендов.'
           }
           action={create}
         />
@@ -48,7 +48,7 @@ export default async function Page() {
         <Table>
           <thead>
             <tr>
-              <Th>Кампания</Th>
+              <Th>Заказ</Th>
               <Th>Рекламодатель</Th>
               <Th>№ договора</Th>
               <Th>Период</Th>

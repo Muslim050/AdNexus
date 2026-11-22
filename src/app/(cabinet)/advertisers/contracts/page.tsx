@@ -4,17 +4,19 @@ import { PageHeader } from '@/components/PageHeader'
 import { NewContract } from '@/components/forms/NewContract'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SubTabs } from '@/components/ui/SubTabs'
 import { Table, Td, Th, Tr } from '@/components/ui/Table'
 import { requireSection } from '@/lib/auth'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { advertiserOptions } from '@/lib/data/advertisers'
 import { listContracts } from '@/lib/data/contracts'
 import { formatDay, formatPeriod } from '@/lib/dates'
+import { ADVERTISER_TABS } from '../tabs'
 
 export const metadata: Metadata = { title: 'Договоры' }
 
 export default async function Page() {
-  const user = await requireSection('/contracts')
+  const user = await requireSection('/advertisers')
   const canCreate = user.role === 'admin'
   const [rows, advertisers] = await Promise.all([
     listContracts(),
@@ -25,11 +27,12 @@ export default async function Page() {
   return (
     <>
       <PageHeader
-        title="Договоры"
+        title="Рекламодатели и бренды"
         subtitle="Договоры брендов: номер, срок, сроки оплаты и статус."
       >
         {rows.length > 0 && create}
       </PageHeader>
+      <SubTabs tabs={ADVERTISER_TABS} />
 
       {rows.length === 0 ? (
         <EmptyState
@@ -37,7 +40,7 @@ export default async function Page() {
           title="Договоров пока нет"
           description={
             canCreate && advertisers.length === 0
-              ? 'Сначала добавьте рекламодателя в разделе «Рекламодатели».'
+              ? 'Сначала добавьте рекламодателя на соседней вкладке.'
               : 'Договор заключается с рекламодателем — из него создаются кампании.'
           }
           action={create}

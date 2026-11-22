@@ -45,19 +45,19 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-30 border-b border-forest-line bg-forest text-white">
-      <div className="mx-auto flex h-16 max-w-[1344px] items-stretch gap-2 px-4 sm:px-6 lg:gap-6">
+      <div className="mx-auto flex h-16 max-w-[1344px] items-stretch gap-2 px-4 sm:px-6 xl:gap-4">
         <button
           onClick={onBurger}
           aria-label={mobileNavOpen ? 'Закрыть меню' : 'Открыть меню'}
           aria-expanded={mobileNavOpen}
-          className="-ml-1 flex w-10 items-center justify-center text-white/70 transition-colors hover:text-white lg:hidden focus-ring"
+          className="-ml-1 flex w-10 items-center justify-center text-white/70 transition-colors hover:text-white xl:hidden focus-ring"
         >
           {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
         <Link
           href={HOME}
-          className="flex shrink-0 items-center pr-2 focus-ring lg:border-r lg:border-forest-line lg:pr-6"
+          className="flex shrink-0 items-center pr-2 focus-ring xl:border-r xl:border-forest-line xl:pr-5"
         >
           <Logo size={36} inverted />
         </Link>
@@ -83,7 +83,7 @@ export function Topbar({
               )}
             >
               <Avatar name={title} color="#0E7745" size="sm" />
-              <span className="hidden min-w-0 max-w-[180px] text-left xl:block">
+              <span className="hidden min-w-0 max-w-[180px] text-left 2xl:block">
                 <span className="block truncate text-[12.5px] font-semibold leading-tight">
                   {title}
                 </span>

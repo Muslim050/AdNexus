@@ -8,6 +8,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 import type { Role } from '../lib/roles'
@@ -117,5 +118,55 @@ export const campaigns = pgTable(
     index('campaigns_advertiser_idx').on(t.advertiserId),
     index('campaigns_contract_idx').on(t.contractId),
     check('campaigns_period_check', sql`${t.endDate} >= ${t.startDate}`),
+  ],
+)
+
+/* ------------------------ календарь размещений ------------------------ */
+
+/** Справочник форматов размещения: «Post Instagram uzb», «Anons Tg uzb»… */
+export const placementFormats = pgTable('placement_formats', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  /** Цвет слота в календаре — hex из палитры справочника. */
+  color: text('color').notNull(),
+  /** Порядок в списках и легенде календаря. */
+  position: integer('position').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})
+
+/**
+ * Бронь временного слота: дата и время по Ташкенту, формат, менеджер
+ * и номер заказа. Один формат в одну минуту бронируется один раз.
+ */
+export const bookings = pgTable(
+  'bookings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    date: date('date', { mode: 'string' }).notNull(),
+    /** Время слота 'HH:MM' по Ташкенту. */
+    time: text('time').notNull(),
+    formatId: uuid('format_id')
+      .notNull()
+      .references(() => placementFormats.id),
+    /** Менеджер, за которым слот. */
+    managerId: uuid('manager_id')
+      .notNull()
+      .references(() => users.id),
+    /** Номер заказа — свободной строкой, пока заказы не связаны с календарём. */
+    orderRef: text('order_ref').notNull().default(''),
+    comment: text('comment').notNull().default(''),
+    createdBy: text('created_by').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('bookings_date_idx').on(t.date, t.time),
+    uniqueIndex('bookings_slot_unique').on(t.formatId, t.date, t.time),
+    check(
+      'bookings_time_check',
+      sql`${t.time} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'`,
+    ),
   ],
 )

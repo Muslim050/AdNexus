@@ -69,7 +69,7 @@ export async function createContract(
     throw err
   }
 
-  revalidatePath('/contracts')
+  revalidatePath('/advertisers/contracts')
   revalidatePath('/advertisers')
   return {
     ok: true,

@@ -3,14 +3,14 @@ import { LayoutDashboard } from 'lucide-react'
 import { requireSection } from '@/lib/auth'
 import { SectionStub } from '../SectionStub'
 
-export const metadata: Metadata = { title: 'Обзор' }
+export const metadata: Metadata = { title: 'Дашборд' }
 
 export default async function Page() {
-  await requireSection('/overview')
+  await requireSection('/dashboard')
   return (
     <SectionStub
-      title="Обзор"
-      subtitle="Сводка по всем рекламодателям, договорам и оплатам."
+      title="Дашборд"
+      subtitle="Общая статистика и показатели."
       icon={LayoutDashboard}
     />
   )
