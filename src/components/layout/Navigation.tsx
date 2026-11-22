@@ -1,0 +1,104 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { navFor, sectionNo } from '@/lib/nav'
+import { useSessionUser } from '@/components/session/SessionProvider'
+import { cn } from '@/lib/cn'
+
+/** Разделы, доступные роли текущего пользователя, в порядке меню. */
+export function useNavItems() {
+  return navFor(useSessionUser()?.role)
+}
+
+const isActive = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`)
+
+/**
+ * Разделы в строку, на тёмной шапке. Выбранный — светлый текст
+ * с мятной планкой по нижнему краю шапки.
+ */
+export function DesktopNav() {
+  const items = useNavItems()
+  const pathname = usePathname()
+
+  return (
+    <nav className="hidden h-full items-stretch lg:flex">
+      {items.map((it, index) => {
+        const active = isActive(pathname, it.href)
+        return (
+          <Link
+            key={it.href}
+            href={it.href}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'group relative flex items-center gap-2.5 px-4 text-[13.5px] font-semibold transition-colors focus-ring',
+              active ? 'text-white' : 'text-white/55 hover:text-white',
+            )}
+          >
+            <span
+              className={cn(
+                'font-mono text-[10px] font-semibold tracking-wider transition-colors',
+                active
+                  ? 'text-lime-300'
+                  : 'text-white/30 group-hover:text-white/50',
+              )}
+            >
+              {sectionNo(index)}
+            </span>
+            <span className="whitespace-nowrap">{it.label}</span>
+            <span
+              className={cn(
+                'absolute inset-x-3 bottom-0 h-[3px] transition-all',
+                active
+                  ? 'bg-lime-300'
+                  : 'bg-transparent group-hover:bg-white/15',
+              )}
+            />
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
+/** Мобильное меню: крупные строки-указатели на тёмном фоне. */
+export function MobileNav({ onNavigate }: { onNavigate: () => void }) {
+  const items = useNavItems()
+  const pathname = usePathname()
+
+  return (
+    <nav className="border-b border-forest-line bg-forest px-5 pb-6 pt-2 shadow-lift">
+      {items.map((it, index) => {
+        const active = isActive(pathname, it.href)
+        const Icon = it.icon
+        return (
+          <Link
+            key={it.href}
+            href={it.href}
+            onClick={onNavigate}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'group flex items-center gap-4 border-b border-forest-line py-4 transition-colors focus-ring',
+              active ? 'text-white' : 'text-white/60 hover:text-white',
+            )}
+          >
+            <span
+              className={cn(
+                'font-mono text-[11px] font-semibold',
+                active ? 'text-lime-300' : 'text-white/35',
+              )}
+            >
+              {sectionNo(index)}
+            </span>
+            <Icon size={18} strokeWidth={1.75} className="shrink-0" />
+            <span className="flex-1 font-display text-base font-semibold">
+              {it.label}
+            </span>
+            {active && <span className="h-2 w-2 bg-lime-300" />}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
