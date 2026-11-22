@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   type AnyPgColumn,
+  bigint,
   boolean,
   check,
   date,
@@ -145,6 +146,24 @@ export const placementFormats = pgTable('placement_formats', {
   name: text('name').notNull().unique(),
   /** Цвет слота в календаре — hex из палитры справочника. */
   color: text('color').notNull(),
+  /** Описание формата для менеджеров и рекламодателей. */
+  description: text('description').notNull().default(''),
+  /** Что входит в размещение — по пункту на строку. */
+  includes: text('includes').notNull().default(''),
+  /** Сумма показов, которую даёт размещение. */
+  impressions: bigint('impressions', { mode: 'number' }).notNull().default(0),
+  /** Стоимость одного показа, сум. */
+  pricePerImpression: numeric('price_per_impression', {
+    precision: 14,
+    scale: 2,
+  })
+    .notNull()
+    .default('0'),
+  /** Превью: фото и видео формата в приватном Blob. */
+  media: jsonb('media')
+    .$type<AttachedFile[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   /** Порядок в списках и легенде календаря. */
   position: integer('position').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),

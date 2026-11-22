@@ -25,6 +25,8 @@ export async function GET(request: Request) {
   // Рекламодателю — только файлы своего бренда: его договоры и брони.
   if (
     user.role === 'advertiser' &&
+    // Превью форматов — витрина, их видит любой вошедший.
+    !path.startsWith('formats/') &&
     !(await ownsFile(user.advertiserId, path))
   ) {
     return new Response('Нет доступа', { status: 403 })

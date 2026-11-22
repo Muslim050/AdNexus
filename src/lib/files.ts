@@ -14,7 +14,8 @@ export interface AttachedFile {
 }
 
 /** Папки хранилища — по сущностям. Загрузка в другие запрещена. */
-export const FILE_FOLDERS = ['contracts', 'bookings'] as const
+// formats — превью форматов: не секрет, их видит любой вошедший.
+export const FILE_FOLDERS = ['contracts', 'bookings', 'formats'] as const
 export type FileFolder = (typeof FILE_FOLDERS)[number]
 
 /** До 200 МБ: сканы и ролики. */
@@ -80,3 +81,25 @@ export function parseAttachedFile(
     return null
   }
 }
+
+/** Список файлов из скрытого поля (JSON-массив); мусор и чужие папки — мимо. */
+export function parseAttachedFiles(
+  raw: FormDataEntryValue | null,
+  folder: FileFolder,
+  max = 20,
+): AttachedFile[] {
+  if (typeof raw !== 'string' || !raw) return []
+  try {
+    const list = JSON.parse(raw)
+    if (!Array.isArray(list)) return []
+    return list
+      .map((item) => parseAttachedFile(JSON.stringify(item), folder))
+      .filter((f): f is AttachedFile => f !== null)
+      .slice(0, max)
+  } catch {
+    return []
+  }
+}
+
+export const isVideo = (f: Pick<AttachedFile, 'contentType' | 'name'>) =>
+  f.contentType.startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(f.name)
