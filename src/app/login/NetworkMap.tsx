@@ -11,40 +11,29 @@ interface Slot {
   highlight?: boolean
 }
 
-// Карта размещений 6×4: каналы — занятые клетки, свободные заштрихованы.
 const SLOTS: Slot[] = [
   {
     code: 'A1',
-    name: 'Кампания',
+    name: 'Кампании',
     area: 'col-[1/3] row-[1/3]',
     highlight: true,
   },
-  { code: 'A2', name: 'ТВ', area: 'col-[3/5] row-[1/2]' },
+  { code: 'A2', name: 'Размещения', area: 'col-[3/5] row-[1/2]' },
   { code: 'A3', area: 'col-[5/7] row-[1/2]' },
-  { code: 'B1', name: 'Digital', area: 'col-[3/5] row-[2/4]' },
-  { code: 'B2', name: 'Наружка', area: 'col-[5/7] row-[2/3]' },
-  { code: 'C1', name: 'Стенды', area: 'col-[1/3] row-[3/4]' },
+  { code: 'B1', name: 'Договоры', area: 'col-[3/5] row-[2/4]' },
+  { code: 'B2', name: 'Оплаты', area: 'col-[5/7] row-[2/3]' },
+  { code: 'C1', name: 'Клиенты', area: 'col-[1/3] row-[3/4]' },
   { code: 'C2', area: 'col-[5/6] row-[3/4]' },
   { code: 'C3', area: 'col-[6/7] row-[3/5]' },
-  { code: 'D1', name: 'Соцсети', area: 'col-[1/4] row-[4/5]' },
+  { code: 'D1', name: 'Отчёты', area: 'col-[1/4] row-[4/5]' },
   { code: 'D2', area: 'col-[4/6] row-[4/5]' },
 ]
 
 export function NetworkMap() {
   return (
     <div className="relative">
-      <div className="eyebrow mb-3 flex items-center justify-between text-white/40">
-        <span>Карта размещений</span>
-        <span className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5">
-            <i className="h-2 w-2 border border-white/40" />
-            Каналы
-          </span>
-          <span className="flex items-center gap-1.5">
-            <i className="h-2 w-2 border border-dashed border-white/30" />
-            Свободно
-          </span>
-        </span>
+      <div className="eyebrow mb-3 text-white/40">
+        Рабочий кабинет
       </div>
       <div className="grid grid-cols-6 grid-rows-[repeat(4,64px)] gap-1.5 border border-white/15 p-1.5 xl:grid-rows-[repeat(4,76px)]">
         {SLOTS.map((slot, index) => (
@@ -83,10 +72,6 @@ export function NetworkMap() {
             )}
           </motion.div>
         ))}
-      </div>
-      <div className="eyebrow mt-3 flex items-center justify-between text-white/35">
-        <span>Сеть AdNexus</span>
-        <span>4 канала · 6 свободно</span>
       </div>
     </div>
   )
