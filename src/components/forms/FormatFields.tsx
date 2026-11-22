@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Field, Input, Textarea } from '@/components/ui/Field'
+import { MoneyInput } from '@/components/ui/MoneyInput'
 import { MediaUpload } from '@/components/ui/MediaUpload'
 import type { AttachedFile } from '@/lib/files'
 import { formatSum, type FormState } from '@/lib/forms'
@@ -85,26 +86,23 @@ export function FormatFields({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Сумма показов" error={errors?.impressions}>
-          <Input
+          <MoneyInput
             name="impressions"
-            inputMode="numeric"
+            decimals={0}
             value={impressions}
-            onChange={(e) => setImpressions(e.target.value)}
-            placeholder="0"
-            aria-invalid={!!errors?.impressions || undefined}
+            onChange={setImpressions}
+            invalid={!!errors?.impressions}
           />
         </Field>
         <Field
           label="Стоимость одного показа, сум"
           error={errors?.pricePerImpression}
         >
-          <Input
+          <MoneyInput
             name="pricePerImpression"
-            inputMode="decimal"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="0"
-            aria-invalid={!!errors?.pricePerImpression || undefined}
+            onChange={setPrice}
+            invalid={!!errors?.pricePerImpression}
           />
         </Field>
       </div>

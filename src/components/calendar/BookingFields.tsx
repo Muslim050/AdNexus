@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Field, Input, Textarea } from '@/components/ui/Field'
+import { MoneyInput } from '@/components/ui/MoneyInput'
 import { FileDrop, FileLink } from '@/components/ui/FileDrop'
 import { SelectField } from '@/components/ui/SelectField'
 import { TimePicker } from '@/components/ui/TimePicker'
@@ -329,21 +330,18 @@ export function BookingFields({
                     ? ` − ${formatPercent(contract?.discount)} = ${formatSum(suggestion)}`
                     : ''
                 }`
-              : 'Пакет формата минус скидка по договору — подставится сам.'
+              : 'Пакет формата минус скидка по договору — подставится автоматически.'
           }
         >
           <div className="flex gap-2">
-            <Input
+            <MoneyInput
               name="amount"
-              inputMode="decimal"
               value={shownAmount}
-              onChange={(e) => {
+              onChange={(plain) => {
                 setAmountTouched(true)
-                setAmount(e.target.value)
+                setAmount(plain)
               }}
-              placeholder="0"
-              className="tnum"
-              aria-invalid={!!errors?.amount || undefined}
+              invalid={!!errors?.amount}
             />
             {amountTouched &&
               suggestion > 0 &&

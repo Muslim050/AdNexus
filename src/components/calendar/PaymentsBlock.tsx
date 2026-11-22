@@ -12,6 +12,7 @@ import { addBookingPayment, deleteBookingPayment } from '@/app/actions/bookings'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Field, Input } from '@/components/ui/Field'
+import { MoneyInput } from '@/components/ui/MoneyInput'
 import { Progress } from '@/components/ui/Progress'
 import { TimePicker } from '@/components/ui/TimePicker'
 import { useToast } from '@/components/ui/Toast'
@@ -263,12 +264,10 @@ function PaymentForm({
       </p>
       <input type="hidden" name="bookingId" value={bookingId} />
       <Field label="Сумма, сум" required error={errors?.amount}>
-        <Input
+        <MoneyInput
           name="amount"
-          inputMode="decimal"
           defaultValue={suggested ? String(suggested) : ''}
-          placeholder="0"
-          className="tnum"
+          invalid={!!errors?.amount}
           autoFocus
         />
       </Field>
