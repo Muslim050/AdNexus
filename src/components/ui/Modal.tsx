@@ -65,7 +65,12 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose?.()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      // Esc в открытом поповере (дата, время) закрывает только его, а не панель.
+      if (document.querySelector('[data-slot="popover-content"]')) return
+      onClose?.()
+    }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {

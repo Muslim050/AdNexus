@@ -12,7 +12,7 @@ import { cn } from '@/lib/cn'
 
 // Поле — прямоугольник с тонкой рамкой; в фокусе рамка изумрудная, а снизу
 // проступает плотная кромка, как у бланка.
-const baseControl =
+export const baseControl =
   'w-full rounded-md border border-ink/18 bg-surface px-3.5 text-sm text-ink placeholder:text-ink-muted/80 transition-[border-color,box-shadow] hover:border-ink/35 outline-none focus-visible:border-indigo-500 focus-visible:shadow-[inset_0_-2px_0_var(--color-indigo-500)] disabled:bg-ink/[0.03] disabled:opacity-60'
 
 export interface FieldProps {

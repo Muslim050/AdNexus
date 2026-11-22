@@ -8,16 +8,23 @@ import { addDays, isIsoDate, startOfWeek, todayTashkent } from '@/lib/week'
 
 export const metadata: Metadata = { title: 'Календарь размещений' }
 
-/** Неделя календаря задаётся адресом: /calendar?d=2026-11-19. */
+/**
+ * Режим и дата задаются адресом: /calendar?d=2026-11-19 — неделя,
+ * /calendar?view=day&d=2026-11-19 — день.
+ */
 export default async function Page({ searchParams }: PageProps<'/calendar'>) {
   const user = await requireSection('/calendar')
-  const { d } = await searchParams
+  const { d, view: rawView } = await searchParams
+  const view = rawView === 'day' ? 'day' : 'week'
   const today = todayTashkent()
-  const weekStart = startOfWeek(isIsoDate(d) ? d : today)
+  const anchor = isIsoDate(d) ? d : today
+  const weekStart = startOfWeek(anchor)
   const canBook = user.role === 'admin'
+  const [from, to] =
+    view === 'day' ? [anchor, anchor] : [weekStart, addDays(weekStart, 6)]
 
   const [slots, formats, managers] = await Promise.all([
-    bookingsBetween(weekStart, addDays(weekStart, 6)),
+    bookingsBetween(from, to),
     formatOptions(),
     canBook ? managerOptions() : Promise.resolve([]),
   ])
@@ -29,6 +36,8 @@ export default async function Page({ searchParams }: PageProps<'/calendar'>) {
         subtitle="Бронирование временных слотов."
       />
       <CalendarView
+        view={view}
+        anchor={anchor}
         weekStart={weekStart}
         today={today}
         slots={slots.map((s) => ({ ...s, createdAt: undefined }))}

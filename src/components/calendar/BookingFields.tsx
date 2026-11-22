@@ -1,6 +1,8 @@
 'use client'
 
+import { DatePicker } from '@/components/ui/DatePicker'
 import { Field, Input, Select, Textarea } from '@/components/ui/Field'
+import { TimePicker } from '@/components/ui/TimePicker'
 import type { FormState } from '@/lib/forms'
 
 export interface FormatChoice {
@@ -19,12 +21,14 @@ export interface ManagerChoice {
 export function BookingFields({
   state,
   date,
+  time,
   formats,
   managers,
   currentUserId,
 }: {
   state: FormState
   date: string
+  time: string
   formats: FormatChoice[]
   managers: ManagerChoice[]
   currentUserId: string
@@ -36,10 +40,18 @@ export function BookingFields({
     <>
       <div className="grid gap-5 sm:grid-cols-[1fr_140px]">
         <Field label="Дата" required error={errors?.date}>
-          <Input name="date" type="date" defaultValue={date} />
+          <DatePicker
+            name="date"
+            defaultValue={date}
+            invalid={!!errors?.date}
+          />
         </Field>
         <Field label="Время" required error={errors?.time}>
-          <Input name="time" type="time" step={300} defaultValue="10:00" />
+          <TimePicker
+            name="time"
+            defaultValue={time}
+            invalid={!!errors?.time}
+          />
         </Field>
       </div>
 

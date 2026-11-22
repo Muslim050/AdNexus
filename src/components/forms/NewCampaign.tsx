@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Megaphone } from 'lucide-react'
 import { createCampaign } from '@/app/actions/campaigns'
+import { DatePicker } from '@/components/ui/DatePicker'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { formatPeriod } from '@/lib/dates'
@@ -169,23 +170,23 @@ function CampaignFields({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Начало периода" required error={errors?.startDate}>
-          <Input
+          <DatePicker
             name="startDate"
-            type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            min={contract?.startDate ?? undefined}
-            max={contract?.endDate ?? undefined}
+            onChange={setStartDate}
+            min={contract?.startDate}
+            max={contract?.endDate}
+            invalid={!!errors?.startDate}
           />
         </Field>
         <Field label="Окончание периода" required error={errors?.endDate}>
-          <Input
+          <DatePicker
             name="endDate"
-            type="date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            min={startDate || contract?.startDate || undefined}
-            max={contract?.endDate ?? undefined}
+            onChange={setEndDate}
+            min={startDate || contract?.startDate}
+            max={contract?.endDate}
+            invalid={!!errors?.endDate}
           />
         </Field>
       </div>

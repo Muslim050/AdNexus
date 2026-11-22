@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Анимации открытия/закрытия у компонентов shadcn (data-open:animate-in). */
+@import 'tw-animate-css';
 
 /* Шрифты Global Expo: заголовки — Montserrat (им же набран сайт компании),
    текст — Manrope, служебные подписи и индексы разделов — JetBrains Mono.
@@ -64,6 +66,19 @@
   --color-muted: rgba(11, 26, 19, 0.05);
   --color-muted-foreground: var(--color-ink-muted);
   --color-border: var(--color-line);
+  /* Остальные токены shadcn (Popover, Calendar) — на палитре «Павильона»:
+     основной — фирменный изумруд, поля — тонкая рамка, фокус — изумрудный. */
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-indigo-500);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-indigo-50);
+  --color-secondary-foreground: var(--color-indigo-700);
+  --color-accent: var(--color-indigo-50);
+  --color-accent-foreground: var(--color-indigo-700);
+  --color-destructive: var(--color-danger);
+  --color-input: rgba(11, 26, 19, 0.18);
+  --color-ring: var(--color-indigo-500);
 
   --font-display: 'Montserrat Variable', Montserrat, system-ui, sans-serif;
   --font-display-cond: 'Montserrat Variable', Montserrat, system-ui, sans-serif;

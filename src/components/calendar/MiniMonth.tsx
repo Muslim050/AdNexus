@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { calendarHref, type CalendarView } from './types'
 import {
   MONTHS,
   WEEKDAYS_MINI,
@@ -13,17 +14,24 @@ import {
   yearOf,
 } from '@/lib/week'
 
-/** Мини-календарь месяца: клик по дню открывает его неделю. */
+/** Мини-календарь месяца: клик по дню открывает его неделю или день. */
 export function MiniMonth({
-  weekStart,
+  view,
+  anchor,
+  from,
+  to,
   today,
 }: {
-  weekStart: string
+  view: CalendarView
+  anchor: string
+  /** Дни на экране — подсвечиваются. */
+  from: string
+  to: string
   today: string
 }) {
   const [cursor, setCursor] = useState(() => ({
-    year: yearOf(weekStart),
-    month: monthIndex(weekStart),
+    year: yearOf(anchor),
+    month: monthIndex(anchor),
   }))
 
   const shift = (delta: number) =>
@@ -70,20 +78,20 @@ export function MiniMonth({
           </span>
         ))}
         {grid.map((week) => {
-          const current = week[0] === weekStart
-          return week.map((day, i) => {
+          return week.map((day) => {
+            const current = day >= from && day <= to
+            // Планка слева — у первого дня того, что на экране.
+            const first = day === from
             const outside = monthIndex(day) !== cursor.month
             const isToday = day === today
             return (
               <Link
                 key={day}
-                href={`/calendar?d=${day}`}
+                href={calendarHref(view, day)}
                 className={cn(
                   'relative flex h-8 items-center justify-center text-[12px] tnum transition-colors focus-ring',
                   current && 'bg-indigo-50',
-                  current &&
-                    i === 0 &&
-                    'shadow-[inset_2px_0_0_var(--color-indigo-500)]',
+                  first && 'shadow-[inset_2px_0_0_var(--color-indigo-500)]',
                   outside ? 'text-ink-muted/60' : 'text-ink',
                   !isToday && 'hover:bg-ink/6',
                 )}

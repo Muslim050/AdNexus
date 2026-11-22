@@ -91,6 +91,11 @@ export function weekTitle(start: string): string {
   return `${MONTHS[m1]} ${y1} – ${MONTHS[m2]} ${y2}`
 }
 
+/** «19 ноября 2026» — подпись выбранной даты. */
+export function humanDate(iso: string): string {
+  return `${dayOfMonth(iso)} ${MONTHS_GEN[monthIndex(iso)]} ${yearOf(iso)}`
+}
+
 /** «19 ноября 2026, чт» — для карточки брони. */
 export function longDay(iso: string): string {
   const dow = WEEKDAYS[(toDate(iso).getUTCDay() + 6) % 7].toLowerCase()

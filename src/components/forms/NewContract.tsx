@@ -2,6 +2,7 @@
 
 import { FileText } from 'lucide-react'
 import { createContract } from '@/app/actions/contracts'
+import { DatePicker } from '@/components/ui/DatePicker'
 import { Field, Input, Select } from '@/components/ui/Field'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { CreateDrawer } from './CreateDrawer'
@@ -59,15 +60,27 @@ export function NewContract({
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Начало" error={errors?.startDate}>
-              <Input name="startDate" type="date" />
+              <DatePicker
+                name="startDate"
+                clearable
+                invalid={!!errors?.startDate}
+              />
             </Field>
             <Field label="Окончание" error={errors?.endDate}>
-              <Input name="endDate" type="date" />
+              <DatePicker
+                name="endDate"
+                clearable
+                invalid={!!errors?.endDate}
+              />
             </Field>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Сроки оплаты" error={errors?.paymentDate}>
-              <Input name="paymentDate" type="date" />
+              <DatePicker
+                name="paymentDate"
+                clearable
+                invalid={!!errors?.paymentDate}
+              />
             </Field>
             <Field label="Статус договора" error={errors?.status}>
               <Select name="status" defaultValue="active">
