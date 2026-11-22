@@ -20,7 +20,7 @@ export async function listFormats() {
 
 /** Форматы для календаря и формы брони. */
 export async function formatOptions() {
-  await requireRole(['admin', 'viewer'])
+  await requireRole(['admin', 'viewer', 'advertiser'])
   return getDb()
     .select({
       id: placementFormats.id,

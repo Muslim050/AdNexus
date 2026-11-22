@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { textOn } from '@/lib/palette'
+import { BOOKING_STATUS } from '@/lib/bookings'
+import { slotLook } from './slotLook'
 import { useNow } from '@/lib/useNow'
 import { WEEKDAYS, dayOfMonth, longDay } from '@/lib/week'
 import { calendarHref, slotLabel, type CalendarSlot } from './types'
@@ -183,18 +184,31 @@ export function TimeGrid({
                       </button>
                     )}
 
-                    {cellSlots.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => onOpen(s)}
-                        title={slotLabel(s)}
-                        className="relative z-10 w-full truncate rounded-sm px-1.5 py-[3px] text-left text-[12px] font-semibold leading-[1.35] transition-[filter] hover:brightness-110 focus-ring"
-                        style={{ background: s.color, color: textOn(s.color) }}
-                      >
-                        {slotLabel(s)}
-                      </button>
-                    ))}
+                    {cellSlots.map((s) => {
+                      const look = slotLook(s.color, s.status, s.masked)
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => !s.masked && onOpen(s)}
+                          title={
+                            s.masked
+                              ? 'Слот занят другим рекламодателем'
+                              : `${slotLabel(s)} · ${BOOKING_STATUS[s.status].label}`
+                          }
+                          className={cn(
+                            'relative z-10 w-full truncate rounded-sm px-1.5 py-[3px] text-left text-[12px] font-semibold leading-[1.35] focus-ring',
+                            s.masked
+                              ? 'cursor-default'
+                              : 'transition-[filter] hover:brightness-95',
+                            look.className,
+                          )}
+                          style={look.style}
+                        >
+                          {slotLabel(s)}
+                        </button>
+                      )
+                    })}
 
                     {nowHere && (
                       <div

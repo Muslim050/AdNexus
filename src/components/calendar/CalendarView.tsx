@@ -13,6 +13,7 @@ import { createBooking, updateBooking } from '@/app/actions/bookings'
 import { FormDrawer } from '@/components/forms/CreateDrawer'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
+import type { Role } from '@/lib/roles'
 import { addDays, humanDate, longDay, weekDays, weekTitle } from '@/lib/week'
 import {
   BookingFields,
@@ -21,7 +22,7 @@ import {
   type FormatChoice,
   type ManagerChoice,
 } from './BookingFields'
-import { FormatLegend } from './FormatLegend'
+import { FormatLegend, StatusLegend } from './FormatLegend'
 import { MiniMonth } from './MiniMonth'
 import { SlotDetails } from './SlotDetails'
 import { TimeGrid } from './TimeGrid'
@@ -42,7 +43,7 @@ interface Props {
   managers: ManagerChoice[]
   advertisers: AdvertiserChoice[]
   contracts: ContractChoice[]
-  canBook: boolean
+  role: Role
   currentUserId: string
 }
 
@@ -56,9 +57,12 @@ export function CalendarView({
   managers,
   advertisers,
   contracts,
-  canBook,
+  role,
   currentUserId,
 }: Props) {
+  // Бронирует admin и рекламодатель; viewer только смотрит.
+  const canBook = role === 'admin' || role === 'advertiser'
+  const formRole = role === 'advertiser' ? 'advertiser' : 'admin'
   const days = view === 'day' ? [anchor] : weekDays(weekStart)
   const step = view === 'day' ? 1 : 7
   const [hidden, setHidden] = useState<string[]>([])
@@ -77,7 +81,15 @@ export function CalendarView({
   const startEdit = (slot: CalendarSlot) =>
     setEditing((e) => ({ open: true, slot, round: e.round + 1 }))
 
-  const canCreate = canBook && formats.some((f) => f.isActive)
+  const canCreate =
+    canBook &&
+    formats.some((f) => f.isActive) &&
+    // Рекламодателю без договора бронировать не по чему.
+    (role !== 'advertiser' || contracts.length > 0)
+  const createHint =
+    role === 'advertiser' && contracts.length === 0
+      ? 'Для брони нужен договор — обратитесь к менеджеру'
+      : 'Сначала добавьте формат в «Справочнике»'
   const book = (date: string, time = '10:00') =>
     setCreate((c) => ({ open: true, date, time, round: c.round + 1 }))
   // Кнопка «Забронировать»: сегодня, если оно на экране, иначе первый день.
@@ -94,9 +106,7 @@ export function CalendarView({
           <Button
             onClick={bookDefault}
             disabled={!canCreate}
-            title={
-              !canCreate ? 'Сначала добавьте формат в «Справочнике»' : undefined
-            }
+            title={!canCreate ? createHint : undefined}
             className="w-full justify-start"
           >
             <Plus size={17} />
@@ -112,6 +122,7 @@ export function CalendarView({
           today={today}
         />
         <FormatLegend formats={formats} hidden={hidden} onToggle={toggle} />
+        <StatusLegend />
       </aside>
 
       <section className="min-w-0 border border-line bg-surface">
@@ -218,14 +229,17 @@ export function CalendarView({
           open={create.open}
           onClose={() => setCreate((c) => ({ ...c, open: false }))}
           round={create.round}
-          title="Бронь слота"
+          title={role === 'advertiser' ? 'Заявка на слот' : 'Бронь слота'}
           description={longDay(create.date)}
           icon={CalendarDays}
           action={createBooking}
-          submitLabel="Забронировать"
+          submitLabel={
+            role === 'advertiser' ? 'Отправить заявку' : 'Забронировать'
+          }
         >
           {(state) => (
             <BookingFields
+              role={formRole}
               state={state}
               date={create.date}
               time={create.time}
@@ -253,6 +267,7 @@ export function CalendarView({
           {(state) =>
             editing.slot && (
               <BookingFields
+                role={formRole}
                 initial={editing.slot}
                 state={state}
                 date={editing.slot.date}
@@ -270,7 +285,7 @@ export function CalendarView({
 
       <SlotDetails
         slot={opened}
-        canEdit={canBook}
+        role={role}
         onClose={() => setOpened(null)}
         onEdit={startEdit}
       />

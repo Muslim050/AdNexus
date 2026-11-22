@@ -6,11 +6,12 @@ import { Field, Input, Textarea } from '@/components/ui/Field'
 import { FileDrop, FileLink } from '@/components/ui/FileDrop'
 import { SelectField } from '@/components/ui/SelectField'
 import { TimePicker } from '@/components/ui/TimePicker'
+import type { ContractStatus } from '@/db/schema'
+import { BOOKING_STATUS, type BookingStatus } from '@/lib/bookings'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { formatPeriod } from '@/lib/dates'
 import type { AttachedFile } from '@/lib/files'
 import { formatPercent, type FormState } from '@/lib/forms'
-import type { ContractStatus } from '@/db/schema'
 
 export interface FormatChoice {
   id: string
@@ -45,7 +46,8 @@ export interface ContractChoice {
 /** Значения брони при правке. */
 export interface BookingInitial {
   id: string
-  managerId: string
+  status: BookingStatus
+  managerId: string | null
   formatId: string
   advertiserId: string | null
   contractId: string | null
@@ -55,6 +57,8 @@ export interface BookingInitial {
 }
 
 interface Props {
+  /** admin выбирает статус, менеджера и бренд; рекламодатель — только своё. */
+  role: 'admin' | 'advertiser'
   /** Правка существующей брони — поля заполнены её значениями. */
   initial?: BookingInitial
   state: FormState
@@ -72,6 +76,7 @@ interface Props {
  * подтягиваются номер, скидка, срок, файл и название кампании.
  */
 export function BookingFields({
+  role,
   initial,
   state,
   date,
@@ -83,9 +88,22 @@ export function BookingFields({
   currentUserId,
 }: Props) {
   const { errors } = state
-  const [advertiserId, setAdvertiserId] = useState(initial?.advertiserId ?? '')
-  const [contractId, setContractId] = useState(initial?.contractId ?? '')
-  const [campaignName, setCampaignName] = useState(initial?.campaignName ?? '')
+  const isAdvertiser = role === 'advertiser'
+  // Рекламодателю бренд не выбирать — он у него один, из учётной записи.
+  const [advertiserId, setAdvertiserId] = useState(
+    initial?.advertiserId ?? (isAdvertiser ? (advertisers[0]?.id ?? '') : ''),
+  )
+  // Единственный договор бренда выбираем сразу — и у рекламодателя тоже.
+  const soleContract = (() => {
+    const own = contracts.filter((c) => c.advertiserId === advertiserId)
+    return own.length === 1 ? own[0] : undefined
+  })()
+  const [contractId, setContractId] = useState(
+    initial?.contractId ?? soleContract?.id ?? '',
+  )
+  const [campaignName, setCampaignName] = useState(
+    initial?.campaignName ?? soleContract?.campaignName ?? '',
+  )
 
   // Только бренды с договорами: без договора слот не забронировать.
   const withContracts = advertisers.filter((a) =>
@@ -132,22 +150,39 @@ export function BookingFields({
         </Field>
       </div>
 
-      <Field label="Менеджер" required error={errors?.managerId}>
-        <SelectField
-          name="managerId"
-          placeholder="Выберите сотрудника"
-          defaultValue={
-            initial?.managerId ??
-            (managers.some((m) => m.id === currentUserId) ? currentUserId : '')
-          }
-          invalid={!!errors?.managerId}
-          options={managers.map((m) => ({
-            value: m.id,
-            label: m.name,
-            hint: m.role === 'admin' ? 'Администратор' : 'Сотрудник',
-          }))}
-        />
-      </Field>
+      {!isAdvertiser && (
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Статус">
+            <SelectField
+              name="status"
+              defaultValue={initial?.status ?? 'sent'}
+              options={Object.entries(BOOKING_STATUS).map(([value, s]) => ({
+                value,
+                label: s.label,
+              }))}
+            />
+          </Field>
+          <Field label="Менеджер" required error={errors?.managerId}>
+            <SelectField
+              name="managerId"
+              placeholder="Выберите сотрудника"
+              defaultValue={
+                initial
+                  ? (initial.managerId ?? '')
+                  : managers.some((m) => m.id === currentUserId)
+                    ? currentUserId
+                    : ''
+              }
+              invalid={!!errors?.managerId}
+              options={managers.map((m) => ({
+                value: m.id,
+                label: m.name,
+                hint: m.role === 'admin' ? 'Администратор' : 'Сотрудник',
+              }))}
+            />
+          </Field>
+        </div>
+      )}
 
       <Field label="Формат размещения" required error={errors?.formatId}>
         <SelectField
@@ -162,17 +197,25 @@ export function BookingFields({
         />
       </Field>
 
-      <Field label="Рекламодатель" required error={errors?.advertiserId}>
-        <SelectField
-          name="advertiserId"
-          placeholder="Выберите рекламодателя"
-          value={advertiserId}
-          onChange={pickAdvertiser}
-          invalid={!!errors?.advertiserId}
-          emptyText="Нет рекламодателей с договорами"
-          options={withContracts.map((a) => ({ value: a.id, label: a.name }))}
-        />
-      </Field>
+      {isAdvertiser ? (
+        <Field label="Рекламодатель" error={errors?.advertiserId}>
+          <p className="flex h-11 items-center border border-line bg-paper/70 px-3.5 text-sm font-semibold text-ink">
+            {advertisers[0]?.name ?? 'Бренд не привязан'}
+          </p>
+        </Field>
+      ) : (
+        <Field label="Рекламодатель" required error={errors?.advertiserId}>
+          <SelectField
+            name="advertiserId"
+            placeholder="Выберите рекламодателя"
+            value={advertiserId}
+            onChange={pickAdvertiser}
+            invalid={!!errors?.advertiserId}
+            emptyText="Нет рекламодателей с договорами"
+            options={withContracts.map((a) => ({ value: a.id, label: a.name }))}
+          />
+        </Field>
+      )}
 
       <Field
         label="Договор"
@@ -187,6 +230,7 @@ export function BookingFields({
           onChange={pickContract}
           disabled={!advertiserId}
           invalid={!!errors?.contractId}
+          emptyText="Договоров пока нет"
           options={brandContracts.map((c) => ({
             value: c.id,
             label: `№ ${c.number}`,

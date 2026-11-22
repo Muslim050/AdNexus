@@ -13,10 +13,14 @@ export async function listContracts() {
     .orderBy(desc(contracts.createdAt))
 }
 
-/** Договоры для формы кампании: из договора подставляются название и срок. */
+/**
+ * Договоры для форм заказа и брони: из договора подставляются номер,
+ * кампания, скидка, срок и файл. Рекламодателю — только договоры его бренда.
+ */
 export async function contractOptions() {
-  await requireRole(['admin', 'viewer'])
-  return getDb()
+  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+  if (user.role === 'advertiser' && !user.advertiserId) return []
+  const query = getDb()
     .select({
       id: contracts.id,
       advertiserId: contracts.advertiserId,
@@ -30,6 +34,9 @@ export async function contractOptions() {
     })
     .from(contracts)
     .orderBy(asc(contracts.number))
+  return user.role === 'advertiser' && user.advertiserId
+    ? query.where(eq(contracts.advertiserId, user.advertiserId))
+    : query
 }
 
 export type ContractOption = Awaited<ReturnType<typeof contractOptions>>[number]

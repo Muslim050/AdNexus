@@ -21,14 +21,15 @@ export default async function Page({ searchParams }: PageProps<'/calendar'>) {
   const today = todayTashkent()
   const anchor = isIsoDate(d) ? d : today
   const weekStart = startOfWeek(anchor)
-  const canBook = user.role === 'admin'
+  const isAdmin = user.role === 'admin'
+  const canBook = isAdmin || user.role === 'advertiser'
   const [from, to] =
     view === 'day' ? [anchor, anchor] : [weekStart, addDays(weekStart, 6)]
 
   const [slots, formats, managers, advertisers, contracts] = await Promise.all([
     bookingsBetween(from, to),
     formatOptions(),
-    canBook ? managerOptions() : Promise.resolve([]),
+    isAdmin ? managerOptions() : Promise.resolve([]),
     canBook ? advertiserOptions() : Promise.resolve([]),
     canBook ? contractOptions() : Promise.resolve([]),
   ])
@@ -49,7 +50,7 @@ export default async function Page({ searchParams }: PageProps<'/calendar'>) {
         managers={managers}
         advertisers={advertisers}
         contracts={contracts}
-        canBook={canBook}
+        role={user.role}
         currentUserId={user.id}
       />
     </>

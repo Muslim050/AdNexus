@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -13,6 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import type { BookingStatus } from '../lib/bookings'
 import type { AttachedFile } from '../lib/files'
 import type { Role } from '../lib/roles'
 
@@ -37,6 +39,11 @@ export const users = pgTable('users', {
   login: text('login').notNull().unique(),
   name: text('name').notNull(),
   role: text('role').$type<Role>().notNull(),
+  /** Бренд учётной записи рекламодателя: что он видит и бронирует. */
+  advertiserId: uuid('advertiser_id').references(
+    (): AnyPgColumn => advertisers.id,
+    { onDelete: 'set null' },
+  ),
   salt: text('salt').notNull(),
   hash: text('hash').notNull(),
   isActive: boolean('is_active').notNull().default(true),
@@ -159,10 +166,10 @@ export const bookings = pgTable(
     formatId: uuid('format_id')
       .notNull()
       .references(() => placementFormats.id),
-    /** Менеджер, за которым слот. */
-    managerId: uuid('manager_id')
-      .notNull()
-      .references(() => users.id),
+    /** Менеджер, за которым слот. Бронь рекламодателя ждёт, пока его назначат. */
+    managerId: uuid('manager_id').references(() => users.id),
+    /** Воронка брони: Отправлен → Получен → Рассматривается → Активен → Выполнен. */
+    status: text('status').$type<BookingStatus>().notNull().default('sent'),
     /** Бренд и договор слота: из договора подтягиваются номер, скидка, файл и срок. */
     advertiserId: uuid('advertiser_id').references(() => advertisers.id),
     contractId: uuid('contract_id').references(() => contracts.id),

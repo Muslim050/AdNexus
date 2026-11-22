@@ -1,9 +1,13 @@
+import type { BookingStatus } from '@/lib/bookings'
 import type { AttachedFile } from '@/lib/files'
 
 export interface CalendarSlot {
   id: string
   date: string
   time: string
+  status: BookingStatus
+  /** Чужой слот для рекламодателя: видно только, что он занят. */
+  masked: boolean
   campaignName: string
   comment: string
   file: AttachedFile | null
@@ -11,8 +15,8 @@ export interface CalendarSlot {
   formatId: string
   formatName: string
   color: string
-  managerId: string
-  managerName: string
+  managerId: string | null
+  managerName: string | null
   advertiserId: string | null
   contractId: string | null
   advertiserName: string | null
@@ -27,9 +31,11 @@ export type CalendarView = 'week' | 'day'
 
 /** Подпись слота: «10:30 | Айша | Post Instagram uzb | Зимняя кампания». */
 export const slotLabel = (s: CalendarSlot) =>
-  [s.time, s.managerName, s.formatName, s.campaignName]
-    .filter(Boolean)
-    .join(' | ')
+  s.masked
+    ? `${s.time} | Занято | ${s.formatName}`
+    : [s.time, s.managerName ?? 'Без менеджера', s.formatName, s.campaignName]
+        .filter(Boolean)
+        .join(' | ')
 
 export const calendarHref = (view: CalendarView, date?: string) => {
   const params = new URLSearchParams()

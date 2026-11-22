@@ -11,4 +11,6 @@ export interface SessionUser {
   login: string
   name: string
   role: Role
+  /** Бренд рекламодателя; у сотрудников — null. */
+  advertiserId: string | null
 }

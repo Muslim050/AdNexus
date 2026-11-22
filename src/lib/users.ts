@@ -12,6 +12,7 @@ const toSessionUser = (u: UserRow): SessionUser => ({
   login: u.login,
   name: u.name,
   role: u.role,
+  advertiserId: u.advertiserId,
 })
 
 // Хэш-приманка: на неизвестный логин тратим столько же времени, сколько на

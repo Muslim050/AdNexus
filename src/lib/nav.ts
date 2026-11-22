@@ -25,7 +25,7 @@ export const NAV: NavItem[] = [
     label: 'Календарь размещений',
     description: 'Бронирование временных слотов',
     icon: CalendarDays,
-    roles: ['admin', 'viewer'],
+    roles: ['admin', 'viewer', 'advertiser'],
   },
   {
     href: '/dashboard',

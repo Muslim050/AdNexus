@@ -43,6 +43,13 @@
       "when": 1795375665613,
       "tag": "0005_drop_order_ref",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795376456106,
+      "tag": "0006_booking_status_advertiser_users",
+      "breakpoints": true
     }
   ]
 }

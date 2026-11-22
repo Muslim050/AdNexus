@@ -10,14 +10,19 @@ import {
 } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
 
-/** Брони за период — для недели или дня календаря. */
+/**
+ * Брони за период — для недели или дня календаря. Рекламодатель видит свои
+ * брони полностью, а чужие — только как занятый слот формата: без бренда,
+ * кампании, менеджера и файлов. Маскируем здесь, на сервере.
+ */
 export async function bookingsBetween(from: string, to: string) {
-  await requireRole(['admin', 'viewer'])
-  return getDb()
+  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+  const rows = await getDb()
     .select({
       id: bookings.id,
       date: bookings.date,
       time: bookings.time,
+      status: bookings.status,
       campaignName: bookings.campaignName,
       comment: bookings.comment,
       file: bookings.file,
@@ -38,7 +43,7 @@ export async function bookingsBetween(from: string, to: string) {
     })
     .from(bookings)
     .innerJoin(placementFormats, eq(placementFormats.id, bookings.formatId))
-    .innerJoin(users, eq(users.id, bookings.managerId))
+    .leftJoin(users, eq(users.id, bookings.managerId))
     .leftJoin(advertisers, eq(advertisers.id, bookings.advertiserId))
     .leftJoin(contracts, eq(contracts.id, bookings.contractId))
     .where(between(bookings.date, from, to))
@@ -47,16 +52,40 @@ export async function bookingsBetween(from: string, to: string) {
       asc(bookings.time),
       asc(placementFormats.position),
     )
+
+  if (user.role !== 'advertiser') {
+    return rows.map((r) => ({ ...r, masked: false }))
+  }
+  return rows.map((r) =>
+    r.advertiserId && r.advertiserId === user.advertiserId
+      ? { ...r, masked: false }
+      : {
+          ...r,
+          masked: true,
+          status: 'active' as const,
+          campaignName: '',
+          comment: '',
+          file: null,
+          createdBy: '',
+          managerId: null,
+          managerName: null,
+          advertiserId: null,
+          contractId: null,
+          advertiserName: null,
+          contractNumber: null,
+          contractDiscount: null,
+          contractStart: null,
+          contractEnd: null,
+          contractFile: null,
+        },
+  )
 }
 
 export type CalendarBooking = Awaited<
   ReturnType<typeof bookingsBetween>
 >[number]
 
-/**
- * Менеджеры для брони — сотрудники площадки с активной учётной записью.
- * Учётные записи рекламодателей сюда не попадают.
- */
+/** Менеджеры для брони — сотрудники площадки с активной учётной записью. */
 export async function managerOptions() {
   await requireRole(['admin', 'viewer'])
   return getDb()

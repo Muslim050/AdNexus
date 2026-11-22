@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Building2 } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { NewAdvertiser } from '@/components/forms/NewAdvertiser'
+import { NewAdvertiserAccess } from '@/components/forms/NewAdvertiserAccess'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SubTabs } from '@/components/ui/SubTabs'
 import { Table, Td, Th, Tr } from '@/components/ui/Table'
@@ -42,6 +43,7 @@ export default async function Page() {
               <Th>Юр. лицо</Th>
               <Th>Контакт</Th>
               <Th className="text-right">Договоров</Th>
+              <Th>Доступ в кабинет</Th>
               <Th>Добавлен</Th>
             </tr>
           </thead>
@@ -59,6 +61,26 @@ export default async function Page() {
                   )}
                 </Td>
                 <Td className="text-right tnum">{a.contractsCount}</Td>
+                <Td>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {a.logins.map((login) => (
+                      <span
+                        key={login}
+                        className="border border-line bg-paper px-2 py-0.5 font-mono text-[12px] text-ink"
+                      >
+                        {login}
+                      </span>
+                    ))}
+                    {canCreate && (
+                      <NewAdvertiserAccess
+                        advertiserId={a.id}
+                        advertiserName={a.name}
+                        contact={a.contact}
+                      />
+                    )}
+                    {!canCreate && a.logins.length === 0 && '—'}
+                  </div>
+                </Td>
                 <Td className="tnum">{formatMoment(a.createdAt)}</Td>
               </Tr>
             ))}

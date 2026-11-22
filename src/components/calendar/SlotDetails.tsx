@@ -2,36 +2,61 @@
 
 import { useState, useTransition, type ReactNode } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
-import { deleteBooking } from '@/app/actions/bookings'
+import { deleteBooking, setBookingStatus } from '@/app/actions/bookings'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { FileCard } from '@/components/ui/FileDrop'
 import { Modal } from '@/components/ui/Modal'
+import { SelectField } from '@/components/ui/SelectField'
 import { useToast } from '@/components/ui/Toast'
+import {
+  BOOKING_STATUS,
+  BOOKING_STATUSES,
+  type BookingStatus,
+} from '@/lib/bookings'
 import { cn } from '@/lib/cn'
 import { formatPeriod } from '@/lib/dates'
 import { formatPercent } from '@/lib/forms'
 import { textOn } from '@/lib/palette'
+import type { Role } from '@/lib/roles'
 import { longDay } from '@/lib/week'
 import type { CalendarSlot } from './types'
 
-/** Карточка слота блоками; admin снимает бронь в два нажатия. */
+/**
+ * Карточка слота блоками. admin меняет статус, правит и снимает любую бронь;
+ * рекламодатель правит и отменяет свою заявку, пока она «Отправлен».
+ */
 export function SlotDetails({
   slot,
-  canEdit,
+  role,
   onClose,
   onEdit,
 }: {
   slot: CalendarSlot | null
-  canEdit: boolean
+  role: Role
   onClose: () => void
   onEdit: (slot: CalendarSlot) => void
 }) {
   const toast = useToast()
   const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
+  // Статус меняется прямо в карточке — держим его локально до обновления.
+  const [statusOverride, setStatusOverride] = useState<{
+    id: string
+    status: BookingStatus
+  } | null>(null)
+
+  const status =
+    slot && statusOverride?.id === slot.id
+      ? statusOverride.status
+      : slot?.status
+  const isAdmin = role === 'admin'
+  const canChange =
+    !!slot && (isAdmin || (role === 'advertiser' && status === 'sent'))
 
   const close = () => {
     setConfirming(false)
+    setStatusOverride(null)
     onClose()
   }
 
@@ -48,6 +73,23 @@ export function SlotDetails({
     })
   }
 
+  const changeStatus = (next: string) => {
+    if (!slot || next === status) return
+    const previous = status
+    setStatusOverride({ id: slot.id, status: next as BookingStatus })
+    startTransition(async () => {
+      const result = await setBookingStatus(slot.id, next)
+      if (result.ok) {
+        toast.success(`Статус: ${BOOKING_STATUS[next as BookingStatus].label}`)
+      } else {
+        if (previous) setStatusOverride({ id: slot.id, status: previous })
+        toast.error(result.error ?? 'Не удалось сменить статус')
+      }
+    })
+  }
+
+  const removeLabel = isAdmin ? 'Снять бронь' : 'Отменить заявку'
+
   return (
     <Modal
       open={slot != null}
@@ -62,7 +104,7 @@ export function SlotDetails({
             <p className="mr-auto text-xs text-ink-muted">
               Забронировал: {slot.createdBy}
             </p>
-            {canEdit &&
+            {canChange &&
               (confirming ? (
                 <>
                   <Button
@@ -79,7 +121,7 @@ export function SlotDetails({
                     onClick={remove}
                     disabled={pending}
                   >
-                    {pending ? 'Снимаем…' : 'Да, снять бронь'}
+                    {pending ? 'Удаляем…' : `Да, ${removeLabel.toLowerCase()}`}
                   </Button>
                 </>
               ) : (
@@ -90,13 +132,14 @@ export function SlotDetails({
                     onClick={() => setConfirming(true)}
                   >
                     <Trash2 size={15} />
-                    Снять бронь
+                    {removeLabel}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => {
+                      const current = { ...slot, status: status ?? slot.status }
                       close()
-                      onEdit(slot)
+                      onEdit(current)
                     }}
                   >
                     <Pencil size={15} />
@@ -108,7 +151,7 @@ export function SlotDetails({
         ) : undefined
       }
     >
-      {slot && (
+      {slot && status && (
         <div className="space-y-4">
           {/* Сводка: время крупно, формат его цветом. */}
           <div
@@ -118,21 +161,54 @@ export function SlotDetails({
             <span className="font-display text-[34px] font-bold leading-none tnum">
               {slot.time}
             </span>
-            <span className="min-w-0 border-l border-current/25 pl-4">
+            <span className="min-w-0 flex-1 border-l border-current/25 pl-4">
               <span className="block truncate text-[15px] font-bold">
                 {slot.campaignName || slot.formatName}
               </span>
               <span className="block truncate text-[12.5px] opacity-80">
                 {slot.advertiserName ?? 'Без рекламодателя'} ·{' '}
-                {slot.managerName}
+                {slot.managerName ?? 'менеджер не назначен'}
               </span>
             </span>
+            <span className="shrink-0 bg-white px-2 py-1">
+              <Badge tone={BOOKING_STATUS[status].tone} dot>
+                {BOOKING_STATUS[status].label}
+              </Badge>
+            </span>
           </div>
+
+          <Block title="Статус" plain>
+            {isAdmin ? (
+              <div className="grid items-center gap-3 sm:grid-cols-[1fr_220px]">
+                <StatusSteps status={status} />
+                <SelectField
+                  name="status"
+                  value={status}
+                  onChange={changeStatus}
+                  disabled={pending}
+                  options={BOOKING_STATUSES.map((s) => ({
+                    value: s,
+                    label: BOOKING_STATUS[s].label,
+                  }))}
+                />
+              </div>
+            ) : (
+              <>
+                <StatusSteps status={status} />
+                {status === 'sent' && (
+                  <p className="text-xs text-ink-muted">
+                    Заявку можно изменить или отменить, пока менеджер её не
+                    принял.
+                  </p>
+                )}
+              </>
+            )}
+          </Block>
 
           <Block title="Размещение">
             <Item label="Дата" value={longDay(slot.date)} />
             <Item label="Время" value={slot.time} />
-            <Item label="Менеджер" value={slot.managerName} />
+            <Item label="Менеджер" value={slot.managerName ?? 'Не назначен'} />
             <Item
               label="Формат"
               value={
@@ -187,6 +263,33 @@ export function SlotDetails({
   )
 }
 
+/** Воронка статусов: пройденные шаги закрашены, текущий подписан. */
+function StatusSteps({ status }: { status: BookingStatus }) {
+  const index = BOOKING_STATUSES.indexOf(status)
+  return (
+    <ol className="flex gap-1" aria-label="Этапы брони">
+      {BOOKING_STATUSES.map((s, i) => (
+        <li key={s} className="min-w-0 flex-1">
+          <span
+            className={cn(
+              'block h-1.5',
+              i <= index ? 'bg-indigo-500' : 'bg-ink/10',
+            )}
+          />
+          <span
+            className={cn(
+              'mt-1.5 block truncate text-[11px]',
+              i === index ? 'font-bold text-ink' : 'text-ink-muted',
+            )}
+          >
+            {BOOKING_STATUS[s].label}
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 /** Блок карточки: подпись капсом и сетка полей в две колонки. */
 function Block({
   title,
@@ -194,7 +297,7 @@ function Block({
   children,
 }: {
   title: string
-  /** Без сетки — для файлов и комментария. */
+  /** Без сетки — для статуса, файлов и комментария. */
   plain?: boolean
   children: ReactNode
 }) {

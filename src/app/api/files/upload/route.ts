@@ -9,7 +9,8 @@ import {
 
 /**
  * Токен для загрузки файла из браузера прямо в приватный Blob — так нет
- * лимита функции в 4,5 МБ. Выдаём только admin и только в папки сущностей.
+ * лимита функции в 4,5 МБ. admin грузит в папки сущностей, рекламодатель —
+ * только материалы своих броней.
  */
 export async function POST(request: Request) {
   let body: HandleUploadBody
@@ -25,10 +26,15 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async (pathname) => {
         const user = await getCurrentUser()
-        if (!user || user.role !== 'admin') {
-          throw new Error('Загружать файлы может только администратор')
-        }
-        const inFolder = FILE_FOLDERS.some((f) => pathname.startsWith(`${f}/`))
+        // admin — в любые папки сущностей; рекламодатель — только материалы брони.
+        const folders: readonly string[] =
+          user?.role === 'admin'
+            ? FILE_FOLDERS
+            : user?.role === 'advertiser' && user.advertiserId
+              ? ['bookings']
+              : []
+        if (!folders.length) throw new Error('Нет прав на загрузку файлов')
+        const inFolder = folders.some((f) => pathname.startsWith(`${f}/`))
         if (!inFolder || pathname.includes('..')) {
           throw new Error('Недопустимый путь файла')
         }

@@ -8,7 +8,11 @@ import {
   type ReactNode,
 } from 'react'
 import { Plus, type LucideIcon } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import {
+  Button,
+  type ButtonSize,
+  type ButtonVariant,
+} from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import type { FormState } from '@/lib/forms'
@@ -66,6 +70,8 @@ type CreateDrawerProps = Omit<FormDrawerProps, 'open' | 'onClose' | 'round'> & {
   /** Кнопку можно заблокировать — например, пока нет рекламодателей. */
   disabled?: boolean
   disabledHint?: string
+  size?: ButtonSize
+  variant?: ButtonVariant
 }
 
 /** Кнопка «Создать» и боковая панель с формой. */
@@ -73,6 +79,8 @@ export function CreateDrawer({
   label,
   disabled,
   disabledHint,
+  size,
+  variant,
   ...drawer
 }: CreateDrawerProps) {
   const [open, setOpen] = useState(false)
@@ -87,8 +95,10 @@ export function CreateDrawer({
         }}
         disabled={disabled}
         title={disabled ? disabledHint : undefined}
+        size={size}
+        variant={variant}
       >
-        <Plus size={17} />
+        <Plus size={size === 'sm' ? 15 : 17} />
         {label}
       </Button>
       <FormDrawer

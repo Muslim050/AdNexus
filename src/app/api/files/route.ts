@@ -1,24 +1,33 @@
 import { get } from '@vercel/blob'
+import { and, eq, sql } from 'drizzle-orm'
+import { getDb } from '@/db'
+import { bookings, contracts } from '@/db/schema'
 import { getCurrentUser } from '@/lib/auth'
 import { FILE_FOLDERS } from '@/lib/files'
 
 /**
- * Отдаёт файл из приватного Blob вошедшему сотруднику. Рекламодателям
- * договоры и материалы площадки не отдаём.
+ * Отдаёт файл из приватного Blob вошедшему пользователю. Сотрудникам — любой,
+ * рекламодателю — только файлы его договоров и броней.
  *
  *   /api/files?path=contracts/scan-abc.pdf&name=Договор.pdf[&download=1]
  */
 export async function GET(request: Request) {
   const user = await getCurrentUser()
   if (!user) return new Response('Нужен вход', { status: 401 })
-  if (user.role === 'advertiser')
-    return new Response('Нет доступа', { status: 403 })
 
   const url = new URL(request.url)
   const path = url.searchParams.get('path') ?? ''
   const inFolder = FILE_FOLDERS.some((f) => path.startsWith(`${f}/`))
   if (!inFolder || path.includes('..')) {
     return new Response('Файл не найден', { status: 404 })
+  }
+
+  // Рекламодателю — только файлы своего бренда: его договоры и брони.
+  if (
+    user.role === 'advertiser' &&
+    !(await ownsFile(user.advertiserId, path))
+  ) {
+    return new Response('Нет доступа', { status: 403 })
   }
 
   const result = await get(path, { access: 'private' })
@@ -41,4 +50,31 @@ export async function GET(request: Request) {
       'X-Content-Type-Options': 'nosniff',
     },
   })
+}
+
+async function ownsFile(advertiserId: string | null, path: string) {
+  if (!advertiserId) return false
+  const db = getDb()
+  const [contract] = await db
+    .select({ id: contracts.id })
+    .from(contracts)
+    .where(
+      and(
+        eq(contracts.advertiserId, advertiserId),
+        sql`${contracts.file}->>'pathname' = ${path}`,
+      ),
+    )
+    .limit(1)
+  if (contract) return true
+  const [booking] = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.advertiserId, advertiserId),
+        sql`${bookings.file}->>'pathname' = ${path}`,
+      ),
+    )
+    .limit(1)
+  return Boolean(booking)
 }
