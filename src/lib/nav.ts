@@ -3,7 +3,6 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
-  LayoutDashboard,
   type LucideIcon,
 } from 'lucide-react'
 import type { Role } from './roles'
@@ -28,16 +27,9 @@ export const NAV: NavItem[] = [
     roles: ['admin', 'viewer', 'advertiser'],
   },
   {
-    href: '/dashboard',
-    label: 'Дашборд',
-    description: 'Общая статистика и показатели',
-    icon: LayoutDashboard,
-    roles: ['admin', 'viewer'],
-  },
-  {
     href: '/orders',
     label: 'Заказы и медиапланы',
-    description: 'Планирование и статусы заказов',
+    description: 'Размещения брендов: оплаты и статусы',
     icon: ClipboardList,
     roles: ['admin', 'viewer', 'advertiser'],
   },

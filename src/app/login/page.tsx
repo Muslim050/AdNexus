@@ -15,7 +15,7 @@ export default function LoginPage() {
 
         <div className="relative flex items-center justify-between">
           <Logo size={44} inverted />
-          <span className="eyebrow text-white/40">Ad Platform</span>
+          <span className="eyebrow text-white/40">CRM Platform</span>
         </div>
 
         <div className="relative my-10 max-w-[620px] animate-fade-up">
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
         <div className="eyebrow flex items-center justify-between border-t border-line px-6 py-4 text-ink-muted sm:px-12">
           <span>© AdNexus</span>
-          <span>Ad Platform</span>
+          <span>CRM Platform</span>
         </div>
       </section>
     </main>

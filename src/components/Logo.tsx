@@ -80,7 +80,7 @@ export function Logo({
             )}
             style={{ fontSize: Math.max(9, size * 0.26) }}
           >
-            Ad Platform
+            CRM Platform
           </span>
         </span>
       ) : (

@@ -1,5 +1,5 @@
 import 'server-only'
-import { and, asc, between, eq, inArray } from 'drizzle-orm'
+import { and, asc, between, eq, inArray, type SQL } from 'drizzle-orm'
 import { getDb } from '@/db'
 import {
   advertisers,
@@ -11,51 +11,48 @@ import {
 } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
 
-/**
- * Брони за период — для недели или дня календаря. Рекламодатель видит свои
- * брони полностью, а чужие — только как занятый слот формата: без бренда,
- * кампании, менеджера и файлов. Маскируем здесь, на сервере.
- */
-export async function bookingsBetween(from: string, to: string) {
-  const user = await requireRole(['admin', 'viewer', 'advertiser'])
-  const rows = await getDb()
-    .select({
-      id: bookings.id,
-      date: bookings.date,
-      time: bookings.time,
-      status: bookings.status,
-      amount: bookings.amount,
-      campaignName: bookings.campaignName,
-      comment: bookings.comment,
-      file: bookings.file,
-      createdBy: bookings.createdBy,
-      formatId: bookings.formatId,
-      formatName: placementFormats.name,
-      color: placementFormats.color,
-      managerId: bookings.managerId,
-      managerName: users.name,
-      advertiserId: bookings.advertiserId,
-      contractId: bookings.contractId,
-      advertiserName: advertisers.name,
-      contractNumber: contracts.number,
-      contractDiscount: contracts.discount,
-      contractStart: contracts.startDate,
-      contractEnd: contracts.endDate,
-      contractFile: contracts.file,
-    })
+/** Поля брони для календаря, списка и карточки — один набор везде. */
+export const bookingFields = {
+  id: bookings.id,
+  date: bookings.date,
+  time: bookings.time,
+  status: bookings.status,
+  amount: bookings.amount,
+  campaignName: bookings.campaignName,
+  comment: bookings.comment,
+  file: bookings.file,
+  createdBy: bookings.createdBy,
+  formatId: bookings.formatId,
+  formatName: placementFormats.name,
+  color: placementFormats.color,
+  managerId: bookings.managerId,
+  managerName: users.name,
+  advertiserId: bookings.advertiserId,
+  contractId: bookings.contractId,
+  advertiserName: advertisers.name,
+  contractNumber: contracts.number,
+  contractDiscount: contracts.discount,
+  contractStart: contracts.startDate,
+  contractEnd: contracts.endDate,
+  contractFile: contracts.file,
+}
+
+/** Брони с присоединёнными форматом, менеджером, брендом и договором. */
+export function bookingsQuery(where: SQL | undefined) {
+  return getDb()
+    .select(bookingFields)
     .from(bookings)
     .innerJoin(placementFormats, eq(placementFormats.id, bookings.formatId))
     .leftJoin(users, eq(users.id, bookings.managerId))
     .leftJoin(advertisers, eq(advertisers.id, bookings.advertiserId))
     .leftJoin(contracts, eq(contracts.id, bookings.contractId))
-    .where(between(bookings.date, from, to))
-    .orderBy(
-      asc(bookings.date),
-      asc(bookings.time),
-      asc(placementFormats.position),
-    )
+    .where(where)
+}
 
-  // История выплат — одним запросом на все брони периода.
+type BookingRow = Awaited<ReturnType<typeof bookingsQuery>>[number]
+
+/** История выплат — одним запросом на все брони; оплачено — их сумма. */
+export async function withPayments<T extends BookingRow>(rows: T[]) {
   const ids = rows.map((r) => r.id)
   const payments = ids.length
     ? await getDb()
@@ -71,7 +68,7 @@ export async function bookingsBetween(from: string, to: string) {
         .where(inArray(bookingPayments.bookingId, ids))
         .orderBy(asc(bookingPayments.paidAt), asc(bookingPayments.seq))
     : []
-  const withPayments = rows.map((r) => {
+  return rows.map((r) => {
     const own = payments
       .filter((p) => p.bookingId === r.id)
       .map((p) => ({
@@ -82,15 +79,29 @@ export async function bookingsBetween(from: string, to: string) {
         createdBy: p.createdBy,
       }))
     const paid = own.reduce((sum, p) => sum + Number(p.amount), 0)
-    return { ...r, payments: own, paid: paid.toFixed(2) }
+    return { ...r, payments: own, paid: paid.toFixed(2), masked: false }
   })
+}
 
-  if (user.role !== 'advertiser') {
-    return withPayments.map((r) => ({ ...r, masked: false }))
-  }
-  return withPayments.map((r) =>
+/**
+ * Брони за период — для недели или дня календаря. Рекламодатель видит свои
+ * брони полностью, а чужие — только как занятый слот формата: без бренда,
+ * кампании, менеджера и файлов. Маскируем здесь, на сервере.
+ */
+export async function bookingsBetween(from: string, to: string) {
+  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+  const rows = await withPayments(
+    await bookingsQuery(between(bookings.date, from, to)).orderBy(
+      asc(bookings.date),
+      asc(bookings.time),
+      asc(placementFormats.position),
+    ),
+  )
+
+  if (user.role !== 'advertiser') return rows
+  return rows.map((r) =>
     r.advertiserId && r.advertiserId === user.advertiserId
-      ? { ...r, masked: false }
+      ? r
       : {
           ...r,
           masked: true,

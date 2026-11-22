@@ -60,8 +60,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <footer className="border-t border-line px-5 py-4 sm:px-8">
         <div className="eyebrow mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-2 text-ink-muted">
-          <span>AdNexus · Ad Platform</span>
-          <span>Кампании · договоры · отчёты</span>
+          <span>AdNexus · CRM Platform</span>
+          <span>Календарь · заказы · справочник</span>
         </div>
       </footer>
     </div>

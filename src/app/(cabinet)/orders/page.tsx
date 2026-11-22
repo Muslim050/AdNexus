@@ -1,78 +1,87 @@
 import type { Metadata } from 'next'
-import { Megaphone } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
-import { NewCampaign } from '@/components/forms/NewCampaign'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Table, Td, Th, Tr } from '@/components/ui/Table'
+import { OrdersView } from '@/components/orders/OrdersView'
 import { requireSection } from '@/lib/auth'
+import { isBookingStatus } from '@/lib/bookings'
 import { advertiserOptions } from '@/lib/data/advertisers'
-import { listCampaigns } from '@/lib/data/campaigns'
+import { managerOptions } from '@/lib/data/bookings'
 import { contractOptions } from '@/lib/data/contracts'
-import { formatMoment, formatPeriod } from '@/lib/dates'
+import { formatOptions } from '@/lib/data/formats'
+import {
+  ORDERS_PAGE_SIZE,
+  listOrders,
+  type OrdersFilter,
+} from '@/lib/data/orders'
+import { todayTashkent } from '@/lib/week'
 
 export const metadata: Metadata = { title: 'Заказы и медиапланы' }
 
-export default async function Page() {
+/**
+ * Список размещений. Фильтры живут в адресе:
+ * ?status=sent&month=2026-11&format=…&q=…&page=2
+ */
+export default async function Page({ searchParams }: PageProps<'/orders'>) {
   const user = await requireSection('/orders')
-  const canCreate = user.role === 'admin'
-  const [rows, advertisers, contracts] = await Promise.all([
-    listCampaigns(),
-    canCreate ? advertiserOptions() : Promise.resolve([]),
-    canCreate ? contractOptions() : Promise.resolve([]),
+  const sp = await searchParams
+  const one = (k: string) => {
+    const v = sp[k]
+    return (Array.isArray(v) ? v[0] : v) ?? ''
+  }
+
+  const rawStatus = one('status')
+  const status: OrdersFilter =
+    rawStatus === 'all' || isBookingStatus(rawStatus) ? rawStatus : 'upcoming'
+  const today = todayTashkent()
+  const currentMonth = today.slice(0, 7)
+  const rawMonth = one('month')
+  const period =
+    rawMonth === 'all' || /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth)
+      ? rawMonth
+      : currentMonth
+  const q = one('q').slice(0, 100)
+  const formatId = /^[0-9a-f-]{36}$/.test(one('format')) ? one('format') : ''
+  const page = Math.max(1, Number(one('page')) || 1)
+
+  const isAdmin = user.role === 'admin'
+  const canBook = isAdmin || user.role === 'advertiser'
+  const [list, formats, managers, advertisers, contracts] = await Promise.all([
+    listOrders({
+      status,
+      // Поиск — по всем месяцам.
+      month: q || period === 'all' ? undefined : period,
+      formatId: formatId || undefined,
+      q: q || undefined,
+      page,
+    }),
+    formatOptions(),
+    isAdmin ? managerOptions() : Promise.resolve([]),
+    canBook ? advertiserOptions() : Promise.resolve([]),
+    canBook ? contractOptions() : Promise.resolve([]),
   ])
-  const create = canCreate && (
-    <NewCampaign advertisers={advertisers} contracts={contracts} />
-  )
 
   return (
     <>
       <PageHeader
         title="Заказы и медиапланы"
-        subtitle="Заказы брендов, оформленные по договорам."
-      >
-        {rows.length > 0 && create}
-      </PageHeader>
-
-      {rows.length === 0 ? (
-        <EmptyState
-          icon={Megaphone}
-          title="Заказов пока нет"
-          description={
-            canCreate && contracts.length === 0
-              ? 'Заказ оформляется по договору. Сначала добавьте рекламодателя и договор в разделе «Рекламодатели и бренды».'
-              : 'Здесь появятся заказы брендов.'
-          }
-          action={create}
-        />
-      ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Заказ</Th>
-              <Th>Рекламодатель</Th>
-              <Th>№ договора</Th>
-              <Th>Период</Th>
-              <Th>Создана</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ campaign: c, advertiserName, contractNumber }) => (
-              <Tr key={c.id}>
-                <Td className="font-semibold text-ink">{c.name}</Td>
-                <Td className="text-ink">{advertiserName}</Td>
-                <Td className="font-mono text-[13px]">{contractNumber}</Td>
-                <Td className="tnum">{formatPeriod(c.startDate, c.endDate)}</Td>
-                <Td className="tnum">
-                  {formatMoment(c.createdAt)}
-                  <span className="block text-xs text-ink-muted">
-                    {c.createdBy}
-                  </span>
-                </Td>
-              </Tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+        subtitle="Размещения брендов: оплаты и статусы. Нажмите на строку, чтобы открыть карточку."
+      />
+      <OrdersView
+        rows={list.rows}
+        total={list.total}
+        page={page}
+        pageSize={ORDERS_PAGE_SIZE}
+        counts={list.counts}
+        query={{ status, formatId, q, period }}
+        currentMonth={currentMonth}
+        today={today}
+        stats={list.stats}
+        formats={formats}
+        managers={managers}
+        advertisers={advertisers}
+        contracts={contracts}
+        role={user.role}
+        currentUserId={user.id}
+      />
     </>
   )
 }
