@@ -11,7 +11,30 @@ Next.js 16 (App Router, Turbopack, Cache Components) · React 19 ·
 Tailwind CSS 4 · Framer Motion · lucide-react. Шрифты — Montserrat,
 Manrope и JetBrains Mono из `@fontsource-variable/*`.
 
-Дальше по плану: Postgres (Neon) + Drizzle ORM, Better Auth, Vercel Blob.
+База — Postgres (Neon через Vercel Marketplace) и Drizzle ORM, как в
+проекте yakasaroy. Файлы — Vercel Blob.
+
+## База данных
+
+Переменные подключения берутся из проекта на Vercel:
+
+```bash
+vercel link
+vercel env pull .env.local
+npm run db:migrate
+npm run db:seed
+```
+
+| Команда               | Что делает                                                            |
+| --------------------- | --------------------------------------------------------------------- |
+| `npm run db:generate` | создаёт миграцию в `drizzle/` после правки `src/db/schema.ts`         |
+| `npm run db:migrate`  | применяет миграции к базе из `.env.local`                             |
+| `npm run db:seed`     | добавляет демо-входы `admin` и `viewer` (пароль = логин), если их нет |
+| `npm run db:studio`   | Drizzle Studio — просмотр таблиц                                      |
+
+Клиент — `getDb()` из [src/db/index.ts](src/db/index.ts), только на сервере.
+Схема пока минимальная (`users`, `login_attempts`): таблицы предметной
+области проектируются заново.
 
 ## Запуск
 
@@ -60,6 +83,7 @@ src/
 
 ## Состояние
 
-Этапы 0–1 готовы: каркас, дизайн-система, оболочка кабинета, экран входа.
+Готово: каркас, дизайн-система, оболочка кабинета, экран входа,
+инфраструктура БД (Drizzle + Neon, миграции, seed).
 Разделы пока — заглушки. Вход временный: кабинет открыт под
 демо-администратором (`src/lib/session.ts`), пока не подключена авторизация.
