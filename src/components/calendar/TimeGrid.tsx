@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { BOOKING_STATUS } from '@/lib/bookings'
 import { slotLook } from './slotLook'
+import { StatusIcon } from './StatusIcon'
 import { useNow } from '@/lib/useNow'
 import { WEEKDAYS, dayOfMonth, longDay } from '@/lib/week'
 import { calendarHref, slotLabel, type CalendarSlot } from './types'
@@ -185,7 +186,7 @@ export function TimeGrid({
                     )}
 
                     {cellSlots.map((s) => {
-                      const look = slotLook(s.color, s.status, s.masked)
+                      const look = slotLook(s.color, s.masked)
                       return (
                         <button
                           key={s.id}
@@ -197,7 +198,7 @@ export function TimeGrid({
                               : `${slotLabel(s)} · ${BOOKING_STATUS[s.status].label}`
                           }
                           className={cn(
-                            'relative z-10 w-full truncate rounded-sm px-1.5 py-[3px] text-left text-[12px] font-semibold leading-[1.35] focus-ring',
+                            'relative z-10 flex w-full items-center gap-1.5 rounded-sm py-[3px] pl-[3px] pr-1.5 text-left text-[12px] font-semibold leading-[1.35] focus-ring',
                             s.masked
                               ? 'cursor-default'
                               : 'transition-[filter] hover:brightness-95',
@@ -205,7 +206,10 @@ export function TimeGrid({
                           )}
                           style={look.style}
                         >
-                          {slotLabel(s)}
+                          {!s.masked && <StatusIcon status={s.status} />}
+                          <span className="min-w-0 flex-1 truncate">
+                            {slotLabel(s)}
+                          </span>
                         </button>
                       )
                     })}

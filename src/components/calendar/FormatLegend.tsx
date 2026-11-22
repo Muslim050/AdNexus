@@ -3,7 +3,7 @@
 import { cn } from '@/lib/cn'
 import { BOOKING_STATUS, BOOKING_STATUSES } from '@/lib/bookings'
 import { textOn } from '@/lib/palette'
-import { slotLook } from './slotLook'
+import { StatusIcon } from './StatusIcon'
 import type { FormatChoice } from './BookingFields'
 
 /** Легенда форматов с галочками — скрыть или показать формат в календаре. */
@@ -66,27 +66,20 @@ export function FormatLegend({
   )
 }
 
-/** Как выглядит слот в каждом статусе. */
+/** Значки статусов на слотах. */
 export function StatusLegend() {
-  const sample = '#546E7A'
   return (
     <div>
       <p className="eyebrow mb-2 text-ink-muted">Статусы</p>
       <ul className="space-y-1.5">
-        {BOOKING_STATUSES.map((status) => {
-          const look = slotLook(sample, status, false)
-          return (
-            <li key={status} className="flex items-center gap-2.5 px-1">
-              <span
-                className={cn('h-[14px] w-[22px] shrink-0', look.className)}
-                style={look.style}
-              />
-              <span className="text-[13px] text-ink-soft">
-                {BOOKING_STATUS[status].label}
-              </span>
-            </li>
-          )
-        })}
+        {BOOKING_STATUSES.map((status) => (
+          <li key={status} className="flex items-center gap-2.5 px-1">
+            <StatusIcon status={status} size="md" />
+            <span className="text-[13px] text-ink-soft">
+              {BOOKING_STATUS[status].label}
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   )
