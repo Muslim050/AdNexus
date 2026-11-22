@@ -7,6 +7,7 @@ import { Logo } from '@/components/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { useSessionUser } from '@/components/session/SessionProvider'
 import { HOME } from '@/lib/nav'
+import { logout } from '@/app/actions/auth'
 import { cn } from '@/lib/cn'
 import { DesktopNav } from './Navigation'
 
@@ -40,7 +41,7 @@ export function Topbar({
   }, [])
 
   const title = user?.name ?? ''
-  const subtitle = user ? `${ROLE_LABEL[user.role]} · ${user.email}` : ''
+  const subtitle = user ? `${ROLE_LABEL[user.role]} · ${user.login}` : ''
 
   return (
     <header className="sticky top-0 z-30 border-b border-forest-line bg-forest text-white">
@@ -109,13 +110,15 @@ export function Topbar({
                   </p>
                   <p className="truncate text-xs text-ink-muted">{subtitle}</p>
                 </div>
-                <Link
-                  href="/login"
-                  className="flex w-full items-center gap-2 border-t border-line px-4 py-3 text-sm font-semibold text-danger transition-colors hover:bg-danger/6"
-                >
-                  <LogOut size={15} />
-                  Выйти
-                </Link>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 border-t border-line px-4 py-3 text-sm font-semibold text-danger transition-colors hover:bg-danger/6"
+                  >
+                    <LogOut size={15} />
+                    Выйти
+                  </button>
+                </form>
               </div>
             )}
           </div>

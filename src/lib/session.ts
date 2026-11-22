@@ -1,16 +1,32 @@
-import type { SessionUser } from './roles'
+import 'server-only'
+import { cookies } from 'next/headers'
+import { connection } from 'next/server'
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+  decodeSession,
+  encodeSession,
+  type SessionPayload,
+} from './token'
 
-/**
- * ВРЕМЕННО: до подключения Better Auth (этап 3) кабинет открыт под
- * демо-администратором. Когда появится авторизация, функция будет читать
- * сессию из cookie и возвращать null для гостя.
- */
-export async function getSessionUser(): Promise<SessionUser | null> {
-  return {
-    id: 'demo-admin',
-    role: 'admin',
-    name: 'Администратор',
-    email: 'admin@adnexus.local',
-    advertiserId: null,
-  }
+/** Сессия из cookie запроса. Читает запрос — только внутри <Suspense>. */
+export async function getSession() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value
+  // Срок сессии сверяется с часами — помечаем чтение как работу запроса.
+  await connection()
+  return decodeSession(token)
+}
+
+export async function setSession(data: Omit<SessionPayload, 'exp'>) {
+  ;(await cookies()).set(SESSION_COOKIE, encodeSession(data), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: SESSION_MAX_AGE,
+  })
+}
+
+export async function clearSession() {
+  ;(await cookies()).delete(SESSION_COOKIE)
 }

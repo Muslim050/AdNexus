@@ -1,27 +1,19 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { useActionState, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Field'
-import { HOME } from '@/lib/nav'
+import { login, type LoginState } from '@/app/actions/auth'
 
-/**
- * Форма входа. ВРЕМЕННО ведёт сразу в кабинет: проверка логина и пароля
- * появится вместе с Better Auth на этапе 3.
- */
 export function LoginForm() {
-  const router = useRouter()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [state, formAction, pending] = useActionState<LoginState, FormData>(
+    login,
+    {},
+  )
+  // Пароль набирают вслепую и ошибаются — глазик показывает набранное.
   const [passwordShown, setPasswordShown] = useState(false)
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    router.push(HOME)
-  }
 
   return (
     <motion.div
@@ -42,25 +34,30 @@ export function LoginForm() {
         Войдите под учётной записью, которую выдал менеджер AdNexus.
       </p>
 
-      <form onSubmit={submit} className="mt-9 space-y-5">
+      <form action={formAction} className="mt-9 space-y-5" noValidate>
         <Field label="Логин">
           <Input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            name="login"
+            defaultValue={state.login}
+            key={state.login}
             placeholder="admin"
             autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
             autoFocus
+            required
           />
         </Field>
 
-        <Field label="Пароль">
+        <Field label="Пароль" error={state.error}>
           <div className="relative">
             <Input
+              name="password"
               type={passwordShown ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••"
               autoComplete="current-password"
+              required
+              // Место под кнопку: иначе длинный пароль уезжает под неё.
               className="pr-11"
             />
             <button
@@ -80,8 +77,9 @@ export function LoginForm() {
           variant="primary"
           type="submit"
           className="w-full justify-between"
+          disabled={pending}
         >
-          Войти в платформу
+          {pending ? 'Входим…' : 'Войти в платформу'}
           <ArrowRight size={18} />
         </Button>
       </form>

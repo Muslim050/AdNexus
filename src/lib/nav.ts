@@ -17,7 +17,7 @@ export interface NavItem {
   roles: Role[]
 }
 
-export const HOME = '/campaigns'
+export { HOME } from './routes'
 
 export const NAV: NavItem[] = [
   {

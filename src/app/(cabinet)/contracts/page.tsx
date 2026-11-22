@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import { FileText } from 'lucide-react'
+import { requireSection } from '@/lib/auth'
 import { SectionStub } from '../SectionStub'
 
 export const metadata: Metadata = { title: 'Договоры' }
 
-export default function Page() {
+export default async function Page() {
+  await requireSection('/contracts')
   return (
     <SectionStub
       title="Договоры"

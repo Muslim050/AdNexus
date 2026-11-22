@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 
-/** Заглушка раздела, пока экран не перенесён из Global Expo. */
+/** Заглушка раздела, пока его логика не спроектирована. */
 export function SectionStub({
   title,
   subtitle,
@@ -18,7 +18,7 @@ export function SectionStub({
       <EmptyState
         icon={icon}
         title="Раздел в работе"
-        description="Экран переносится вместе с базой данных — следующий этап плана."
+        description="Раздел появится, когда спроектируем его логику."
       />
     </>
   )
