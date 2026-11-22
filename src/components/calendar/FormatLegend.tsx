@@ -3,7 +3,7 @@
 import { cn } from '@/lib/cn'
 import { BOOKING_STATUS, BOOKING_STATUSES } from '@/lib/bookings'
 import { textOn } from '@/lib/palette'
-import { StatusIcon } from './StatusIcon'
+
 import type { FormatChoice } from './BookingFields'
 
 /** Легенда форматов с галочками — скрыть или показать формат в календаре. */
@@ -66,7 +66,7 @@ export function FormatLegend({
   )
 }
 
-/** Значки статусов на слотах. */
+/** Цвета точек статусов — как в плашке на слоте. */
 export function StatusLegend() {
   return (
     <div>
@@ -74,7 +74,10 @@ export function StatusLegend() {
       <ul className="space-y-1.5">
         {BOOKING_STATUSES.map((status) => (
           <li key={status} className="flex items-center gap-2.5 px-1">
-            <StatusIcon status={status} size="md" />
+            <span
+              className="h-2.5 w-2.5 shrink-0"
+              style={{ background: BOOKING_STATUS[status].dot }}
+            />
             <span className="text-[13px] text-ink-soft">
               {BOOKING_STATUS[status].label}
             </span>

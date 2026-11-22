@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { BOOKING_STATUS } from '@/lib/bookings'
 import { slotLook } from './slotLook'
-import { StatusIcon } from './StatusIcon'
+import { StatusPill } from './StatusPill'
 import { useNow } from '@/lib/useNow'
 import { WEEKDAYS, dayOfMonth, longDay } from '@/lib/week'
 import { calendarHref, slotLabel, type CalendarSlot } from './types'
@@ -198,7 +198,7 @@ export function TimeGrid({
                               : `${slotLabel(s)} · ${BOOKING_STATUS[s.status].label}`
                           }
                           className={cn(
-                            'relative z-10 flex w-full items-center gap-1.5 rounded-sm py-[3px] pl-[3px] pr-1.5 text-left text-[12px] font-semibold leading-[1.35] focus-ring',
+                            '@container relative z-10 flex w-full items-center gap-1.5 rounded-sm py-[3px] pl-1.5 pr-[3px] text-left text-[12px] font-semibold leading-[1.35] focus-ring',
                             s.masked
                               ? 'cursor-default'
                               : 'transition-[filter] hover:brightness-95',
@@ -206,10 +206,10 @@ export function TimeGrid({
                           )}
                           style={look.style}
                         >
-                          {!s.masked && <StatusIcon status={s.status} />}
                           <span className="min-w-0 flex-1 truncate">
                             {slotLabel(s)}
                           </span>
+                          {!s.masked && <StatusPill status={s.status} />}
                         </button>
                       )
                     })}
