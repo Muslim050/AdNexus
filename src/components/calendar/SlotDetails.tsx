@@ -1,7 +1,21 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Clock, Hash, MessageSquare, Trash2, User } from 'lucide-react'
+import { useState, useTransition, type ReactNode } from 'react'
+import {
+  Building2,
+  CalendarRange,
+  Clock,
+  FileText,
+  Megaphone,
+  MessageSquare,
+  Paperclip,
+  Percent,
+  Trash2,
+  User,
+} from 'lucide-react'
+import { FileLink } from '@/components/ui/FileDrop'
+import { formatPeriod } from '@/lib/dates'
+import { formatPercent } from '@/lib/forms'
 import { deleteBooking } from '@/app/actions/bookings'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -92,10 +106,46 @@ export function SlotDetails({
           <Detail icon={Clock} label="Время" value={slot.time} />
           <Detail icon={User} label="Менеджер" value={slot.managerName} />
           <Detail
-            icon={Hash}
-            label="Номер заказа"
-            value={slot.orderRef || '—'}
+            icon={Megaphone}
+            label="Рекламная кампания"
+            value={slot.campaignName || '—'}
           />
+          {slot.advertiserName && (
+            <Detail
+              icon={Building2}
+              label="Рекламодатель"
+              value={slot.advertiserName}
+            />
+          )}
+          {slot.contractNumber && (
+            <>
+              <Detail
+                icon={FileText}
+                label="Договор"
+                value={`№ ${slot.contractNumber}`}
+              />
+              <Detail
+                icon={Percent}
+                label="Скидка"
+                value={formatPercent(slot.contractDiscount)}
+              />
+              <Detail
+                icon={CalendarRange}
+                label="Срок договора"
+                value={formatPeriod(slot.contractStart, slot.contractEnd)}
+              />
+            </>
+          )}
+          {slot.contractFile && (
+            <FileRow label="Файл договора">
+              <FileLink file={slot.contractFile} />
+            </FileRow>
+          )}
+          {slot.file && (
+            <FileRow label="Файл">
+              <FileLink file={slot.file} />
+            </FileRow>
+          )}
           {slot.comment && (
             <Detail
               icon={MessageSquare}
@@ -109,6 +159,18 @@ export function SlotDetails({
         </dl>
       )}
     </Modal>
+  )
+}
+
+function FileRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-3">
+      <Paperclip size={16} className="mt-0.5 shrink-0 text-ink-muted" />
+      <div className="min-w-0">
+        <dt className="eyebrow text-ink-muted">{label}</dt>
+        <dd className="mt-0.5 min-w-0">{children}</dd>
+      </div>
+    </div>
   )
 }
 

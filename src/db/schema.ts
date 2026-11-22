@@ -5,12 +5,15 @@ import {
   date,
   index,
   integer,
+  jsonb,
+  numeric,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import type { AttachedFile } from '../lib/files'
 import type { Role } from '../lib/roles'
 
 /*
@@ -83,6 +86,12 @@ export const contracts = pgTable(
     /** Сроки оплаты. */
     paymentDate: date('payment_date', { mode: 'string' }),
     status: text('status').$type<ContractStatus>().notNull().default('active'),
+    /** Скидка по договору, % — подтягивается в бронь слота. */
+    discount: numeric('discount', { precision: 5, scale: 2 })
+      .notNull()
+      .default('0'),
+    /** Скан договора в приватном Blob. */
+    file: jsonb('file').$type<AttachedFile>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -154,8 +163,13 @@ export const bookings = pgTable(
     managerId: uuid('manager_id')
       .notNull()
       .references(() => users.id),
-    /** Номер заказа — свободной строкой, пока заказы не связаны с календарём. */
-    orderRef: text('order_ref').notNull().default(''),
+    /** Бренд и договор слота: из договора подтягиваются номер, скидка, файл и срок. */
+    advertiserId: uuid('advertiser_id').references(() => advertisers.id),
+    contractId: uuid('contract_id').references(() => contracts.id),
+    /** Рекламная кампания — по умолчанию из договора, можно поправить. */
+    campaignName: text('campaign_name').notNull().default(''),
+    /** Материалы слота (креатив, ТЗ) в приватном Blob. */
+    file: jsonb('file').$type<AttachedFile>(),
     comment: text('comment').notNull().default(''),
     createdBy: text('created_by').notNull(),
     createdAt: createdAt(),

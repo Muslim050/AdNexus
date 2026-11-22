@@ -1,21 +1,32 @@
+import type { AttachedFile } from '@/lib/files'
+
 export interface CalendarSlot {
   id: string
   date: string
   time: string
-  orderRef: string
+  campaignName: string
   comment: string
+  file: AttachedFile | null
   createdBy: string
   formatId: string
   formatName: string
   color: string
   managerName: string
+  advertiserName: string | null
+  contractNumber: string | null
+  contractDiscount: string | null
+  contractStart: string | null
+  contractEnd: string | null
+  contractFile: AttachedFile | null
 }
 
 export type CalendarView = 'week' | 'day'
 
-/** Подпись слота как в календаре: «10:30 | Айша | Post Instagram uzb | 3047». */
+/** Подпись слота: «10:30 | Айша | Post Instagram uzb | Зимняя кампания». */
 export const slotLabel = (s: CalendarSlot) =>
-  [s.time, s.managerName, s.formatName, s.orderRef].filter(Boolean).join(' | ')
+  [s.time, s.managerName, s.formatName, s.campaignName]
+    .filter(Boolean)
+    .join(' | ')
 
 export const calendarHref = (view: CalendarView, date?: string) => {
   const params = new URLSearchParams()

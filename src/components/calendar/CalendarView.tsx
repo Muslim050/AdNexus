@@ -10,6 +10,8 @@ import { cn } from '@/lib/cn'
 import { addDays, humanDate, longDay, weekDays, weekTitle } from '@/lib/week'
 import {
   BookingFields,
+  type AdvertiserChoice,
+  type ContractChoice,
   type FormatChoice,
   type ManagerChoice,
 } from './BookingFields'
@@ -32,6 +34,8 @@ interface Props {
   slots: CalendarSlot[]
   formats: FormatChoice[]
   managers: ManagerChoice[]
+  advertisers: AdvertiserChoice[]
+  contracts: ContractChoice[]
   canBook: boolean
   currentUserId: string
 }
@@ -44,6 +48,8 @@ export function CalendarView({
   slots,
   formats,
   managers,
+  advertisers,
+  contracts,
   canBook,
   currentUserId,
 }: Props) {
@@ -212,6 +218,8 @@ export function CalendarView({
               time={create.time}
               formats={formats}
               managers={managers}
+              advertisers={advertisers}
+              contracts={contracts}
               currentUserId={currentUserId}
             />
           )}

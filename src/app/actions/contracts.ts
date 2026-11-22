@@ -5,7 +5,14 @@ import { eq } from 'drizzle-orm'
 import { getDb } from '@/db'
 import { advertisers, contracts, type ContractStatus } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
-import { dateField, isUniqueViolation, text, type FormState } from '@/lib/forms'
+import { parseAttachedFile } from '@/lib/files'
+import {
+  dateField,
+  isUniqueViolation,
+  percentField,
+  text,
+  type FormState,
+} from '@/lib/forms'
 
 const STATUSES: ContractStatus[] = ['active', 'completed', 'terminated']
 
@@ -22,6 +29,8 @@ export async function createContract(
   const endDate = dateField(fd, 'endDate')
   const paymentDate = dateField(fd, 'paymentDate')
   const status = text(fd, 'status', 20) as ContractStatus
+  const discount = percentField(fd, 'discount')
+  const file = parseAttachedFile(fd.get('file'), 'contracts')
 
   const errors: Record<string, string> = {}
   if (!advertiserId) errors.advertiserId = 'Выберите рекламодателя'
@@ -33,7 +42,8 @@ export async function createContract(
     errors.endDate = 'Окончание раньше начала'
   }
   if (!STATUSES.includes(status)) errors.status = 'Выберите статус'
-  if (Object.keys(errors).length) return { errors }
+  if (discount === false) errors.discount = 'Скидка — число от 0 до 100'
+  if (Object.keys(errors).length || discount === false) return { errors }
 
   const db = getDb()
   const [advertiser] = await db
@@ -58,6 +68,8 @@ export async function createContract(
       endDate: endDate || null,
       paymentDate: paymentDate || null,
       status,
+      discount: discount.toFixed(2),
+      file,
     })
   } catch (err) {
     // Номер уникален по всей базе — иначе он всплывёт у двух брендов.

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Megaphone } from 'lucide-react'
 import { createCampaign } from '@/app/actions/campaigns'
 import { DatePicker } from '@/components/ui/DatePicker'
-import { Field, Input, Select } from '@/components/ui/Field'
+import { Field, Input } from '@/components/ui/Field'
+import { SelectField } from '@/components/ui/SelectField'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { formatPeriod } from '@/lib/dates'
 import type { ContractStatus } from '@/db/schema'
@@ -100,20 +101,15 @@ function CampaignFields({
   return (
     <>
       <Field label="Рекламодатель" required error={errors?.advertiserId}>
-        <Select
+        <SelectField
           name="advertiserId"
+          placeholder="Выберите бренд"
           value={advertiserId}
-          onChange={(e) => pickAdvertiser(e.target.value)}
-        >
-          <option value="" disabled>
-            Выберите бренд
-          </option>
-          {withContracts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </Select>
+          onChange={pickAdvertiser}
+          invalid={!!errors?.advertiserId}
+          emptyText="Нет рекламодателей с договорами"
+          options={withContracts.map((a) => ({ value: a.id, label: a.name }))}
+        />
       </Field>
 
       <Field
@@ -122,24 +118,24 @@ function CampaignFields({
         hint={!advertiserId ? 'Сначала выберите рекламодателя.' : undefined}
         error={errors?.contractId}
       >
-        <Select
+        <SelectField
           name="contractId"
+          placeholder="Выберите договор"
           value={contractId}
-          onChange={(e) => pickContract(e.target.value)}
+          onChange={pickContract}
           disabled={!advertiserId}
-        >
-          <option value="" disabled>
-            Выберите договор
-          </option>
-          {brandContracts.map((c) => (
-            <option key={c.id} value={c.id}>
-              № {c.number}
-              {c.status !== 'active'
-                ? ` · ${CONTRACT_STATUS[c.status].label.toLowerCase()}`
-                : ''}
-            </option>
-          ))}
-        </Select>
+          invalid={!!errors?.contractId}
+          options={brandContracts.map((c) => ({
+            value: c.id,
+            label: `№ ${c.number}`,
+            hint: [
+              c.campaignName,
+              c.status !== 'active' ? CONTRACT_STATUS[c.status].label : '',
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          }))}
+        />
       </Field>
 
       <Field

@@ -1,3 +1,4 @@
+import type React from 'react'
 import { cn } from '@/lib/cn'
 
 /**
@@ -11,6 +12,12 @@ export function Progress({
   tone = 'indigo',
   label,
   inverted = false,
+}: {
+  value?: number
+  className?: string
+  tone?: 'indigo' | 'lime' | 'success' | 'warning' | 'danger'
+  label?: React.ReactNode
+  inverted?: boolean
 }) {
   const pct = Math.max(0, Math.min(100, value))
   const over = value > 100

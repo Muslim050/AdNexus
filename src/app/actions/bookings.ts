@@ -1,16 +1,20 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { getDb } from '@/db'
-import { bookings, placementFormats, users } from '@/db/schema'
+import { bookings, contracts, placementFormats, users } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
-import { dateField, isUniqueViolation, text, type FormState } from '@/lib/forms'
 import { formatDay } from '@/lib/dates'
+import { parseAttachedFile } from '@/lib/files'
+import { dateField, isUniqueViolation, text, type FormState } from '@/lib/forms'
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
-/** Бронь слота. Только admin; занятый слот отсекает уникальный индекс. */
+/**
+ * Бронь слота. Только admin. Слот привязан к рекламодателю и его договору;
+ * занятый слот (формат + дата + время) отсекает уникальный индекс.
+ */
 export async function createBooking(
   _prev: FormState,
   fd: FormData,
@@ -19,20 +23,26 @@ export async function createBooking(
 
   const date = dateField(fd, 'date')
   const time = text(fd, 'time', 5)
-  const formatId = text(fd, 'formatId', 36)
   const managerId = text(fd, 'managerId', 36)
-  const orderRef = text(fd, 'orderRef', 100)
+  const formatId = text(fd, 'formatId', 36)
+  const advertiserId = text(fd, 'advertiserId', 36)
+  const contractId = text(fd, 'contractId', 36)
+  const campaignName = text(fd, 'campaignName', 300)
   const comment = text(fd, 'comment', 1000)
+  const file = parseAttachedFile(fd.get('file'), 'bookings')
 
   const errors: Record<string, string> = {}
   if (!date) errors.date = 'Укажите дату'
   if (!TIME.test(time)) errors.time = 'Укажите время'
-  if (!formatId) errors.formatId = 'Выберите формат'
   if (!managerId) errors.managerId = 'Выберите менеджера'
+  if (!formatId) errors.formatId = 'Выберите формат'
+  if (!advertiserId) errors.advertiserId = 'Выберите рекламодателя'
+  if (!contractId) errors.contractId = 'Выберите договор'
+  if (!campaignName) errors.campaignName = 'Укажите рекламную кампанию'
   if (Object.keys(errors).length || !date) return { errors }
 
   const db = getDb()
-  const [[format], [manager]] = await Promise.all([
+  const [[format], [manager], [contract]] = await Promise.all([
     db
       .select({ name: placementFormats.name })
       .from(placementFormats)
@@ -46,20 +56,43 @@ export async function createBooking(
     db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.id, managerId), eq(users.isActive, true)))
+      .where(
+        and(
+          eq(users.id, managerId),
+          eq(users.isActive, true),
+          inArray(users.role, ['admin', 'viewer']),
+        ),
+      )
+      .limit(1),
+    // Договор обязан принадлежать выбранному бренду.
+    db
+      .select({ id: contracts.id })
+      .from(contracts)
+      .where(
+        and(
+          eq(contracts.id, contractId),
+          eq(contracts.advertiserId, advertiserId),
+        ),
+      )
       .limit(1),
   ])
   if (!format) return { errors: { formatId: 'Формат не найден' } }
   if (!manager) return { errors: { managerId: 'Менеджер не найден' } }
+  if (!contract) {
+    return { errors: { contractId: 'Договор не найден у этого рекламодателя' } }
+  }
 
   try {
     await db.insert(bookings).values({
       date,
       time,
-      formatId,
       managerId,
-      orderRef,
+      formatId,
+      advertiserId,
+      contractId,
+      campaignName,
       comment,
+      file,
       createdBy: user.name,
     })
   } catch (err) {

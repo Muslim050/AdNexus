@@ -23,6 +23,22 @@ export function dateField(fd: FormData, key: string): string | null | false {
   return value
 }
 
+/** Процент 0–100 с запятой или точкой; пусто — 0, неверно — false. */
+export function percentField(fd: FormData, key: string): number | false {
+  const raw = text(fd, key, 10).replace(',', '.').replace('%', '').trim()
+  if (!raw) return 0
+  const value = Number(raw)
+  if (!Number.isFinite(value) || value < 0 || value > 100) return false
+  return Math.round(value * 100) / 100
+}
+
+/** '12.50' → '12,5 %', '0.00' → '—'. */
+export function formatPercent(value: string | number | null | undefined) {
+  const n = Number(value ?? 0)
+  if (!n) return '—'
+  return `${n.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} %`
+}
+
 export const isEmail = (value: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 

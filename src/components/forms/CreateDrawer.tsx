@@ -113,6 +113,7 @@ function DrawerForm({
   children: (state: FormState) => ReactNode
 }) {
   const toast = useToast()
+  const [waitUpload, setWaitUpload] = useState(false)
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     async (prev, fd) => {
       try {
@@ -134,6 +135,12 @@ function DrawerForm({
   // введённое остаётся на месте, а после успеха панель закрывается.
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    // Файл ещё грузится — его описания в форме пока нет.
+    if (event.currentTarget.querySelector('[data-uploading]')) {
+      setWaitUpload(true)
+      return
+    }
+    setWaitUpload(false)
     const fd = new FormData(event.currentTarget)
     startTransition(() => formAction(fd))
   }
@@ -141,6 +148,11 @@ function DrawerForm({
   return (
     <form onSubmit={submit} noValidate className="space-y-5">
       {children(state)}
+      {waitUpload && (
+        <p className="border-l-2 border-warning bg-warning/8 px-3 py-2 text-sm text-warning">
+          Дождитесь окончания загрузки файла.
+        </p>
+      )}
       {state.error && (
         <p className="border-l-2 border-danger bg-danger/6 px-3 py-2 text-sm text-danger">
           {state.error}

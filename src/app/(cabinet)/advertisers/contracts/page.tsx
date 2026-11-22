@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { NewContract } from '@/components/forms/NewContract'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { FileLink } from '@/components/ui/FileDrop'
 import { SubTabs } from '@/components/ui/SubTabs'
 import { Table, Td, Th, Tr } from '@/components/ui/Table'
 import { requireSection } from '@/lib/auth'
@@ -11,6 +12,7 @@ import { CONTRACT_STATUS } from '@/lib/contracts'
 import { advertiserOptions } from '@/lib/data/advertisers'
 import { listContracts } from '@/lib/data/contracts'
 import { formatDay, formatPeriod } from '@/lib/dates'
+import { formatPercent } from '@/lib/forms'
 import { ADVERTISER_TABS } from '../tabs'
 
 export const metadata: Metadata = { title: 'Договоры' }
@@ -54,6 +56,8 @@ export default async function Page() {
               <Th>Рекламная кампания</Th>
               <Th>Срок</Th>
               <Th>Оплата до</Th>
+              <Th className="text-right">Скидка</Th>
+              <Th>Файл</Th>
               <Th>Статус</Th>
             </tr>
           </thead>
@@ -67,6 +71,10 @@ export default async function Page() {
                 <Td>{c.campaignName || '—'}</Td>
                 <Td className="tnum">{formatPeriod(c.startDate, c.endDate)}</Td>
                 <Td className="tnum">{formatDay(c.paymentDate)}</Td>
+                <Td className="text-right tnum">{formatPercent(c.discount)}</Td>
+                <Td className="max-w-[200px]">
+                  {c.file ? <FileLink file={c.file} /> : '—'}
+                </Td>
                 <Td>
                   <Badge tone={CONTRACT_STATUS[c.status].tone} dot>
                     {CONTRACT_STATUS[c.status].label}

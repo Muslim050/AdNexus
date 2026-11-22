@@ -25,6 +25,8 @@ export async function contractOptions() {
       startDate: contracts.startDate,
       endDate: contracts.endDate,
       status: contracts.status,
+      discount: contracts.discount,
+      file: contracts.file,
     })
     .from(contracts)
     .orderBy(asc(contracts.number))
