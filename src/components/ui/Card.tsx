@@ -1,8 +1,13 @@
+import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
 // Карточка — «стенд» на плане: белый прямоугольник в тонкой рамке, без тени.
 // Кликабельная при наведении получает тёмную рамку и зелёную кромку сверху.
-export function Card({ className, hover = false, ...props }) {
+export function Card({
+  className,
+  hover = false,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & { hover?: boolean }) {
   return (
     <div
       className={cn(
@@ -16,7 +21,10 @@ export function Card({ className, hover = false, ...props }) {
   )
 }
 
-export function CardHeader({ className, ...props }) {
+export function CardHeader({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn('flex items-start justify-between gap-4 p-5', className)}
@@ -25,7 +33,10 @@ export function CardHeader({ className, ...props }) {
   )
 }
 
-export function CardTitle({ className, ...props }) {
+export function CardTitle({
+  className,
+  ...props
+}: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
       className={cn(
@@ -37,6 +48,9 @@ export function CardTitle({ className, ...props }) {
   )
 }
 
-export function CardBody({ className, ...props }) {
+export function CardBody({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('p-5 pt-0', className)} {...props} />
 }

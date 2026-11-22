@@ -1,5 +1,9 @@
+import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
+  date,
+  index,
   integer,
   pgTable,
   text,
@@ -9,9 +13,9 @@ import {
 import type { Role } from '../lib/roles'
 
 /*
-  Схема пока минимальная: только учётные записи для входа. Таблицы
-  предметной области спроектируем отдельно — логику платформы делаем
-  заново, а не переносим из Global Expo.
+  Логика платформы проектируется заново, а не переносится из Global Expo.
+  Цепочка «рекламодатель → договор → кампания» — по образцу Setanta,
+  без лиг и пакетов.
 */
 
 const createdAt = () =>
@@ -42,3 +46,76 @@ export const loginAttempts = pgTable('login_attempts', {
   count: integer('count').notNull(),
   until: timestamp('until', { withTimezone: true }).notNull(),
 })
+
+/* ------------------------- рекламодатели и договоры ------------------------- */
+
+/** Бренд-рекламодатель. */
+export const advertisers = pgTable('advertisers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  /** Юр. лицо — подставляется в договоры бренда. */
+  legalName: text('legal_name').notNull().default(''),
+  contact: text('contact').notNull().default(''),
+  email: text('email').notNull().default(''),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})
+
+/** Статус договора — как в Setanta. */
+export type ContractStatus = 'active' | 'completed' | 'terminated'
+
+/** Договор бренда. Кампании создаются из договора. */
+export const contracts = pgTable(
+  'contracts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    advertiserId: uuid('advertiser_id')
+      .notNull()
+      .references(() => advertisers.id),
+    /** Номер уникален по всей базе: иначе один номер всплывёт у двух брендов. */
+    number: text('number').notNull().unique(),
+    /** Рекламная кампания, под которую заключён договор. */
+    campaignName: text('campaign_name').notNull().default(''),
+    legalName: text('legal_name').notNull().default(''),
+    startDate: date('start_date', { mode: 'string' }),
+    endDate: date('end_date', { mode: 'string' }),
+    /** Сроки оплаты. */
+    paymentDate: date('payment_date', { mode: 'string' }),
+    status: text('status').$type<ContractStatus>().notNull().default('active'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('contracts_advertiser_idx').on(t.advertiserId)],
+)
+
+/**
+ * Рекламная кампания. Создаётся из договора бренда; срок договора
+ * и юр. лицо копируются снимком — правка договора их не меняет.
+ */
+export const campaigns = pgTable(
+  'campaigns',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    advertiserId: uuid('advertiser_id')
+      .notNull()
+      .references(() => advertisers.id),
+    contractId: uuid('contract_id')
+      .notNull()
+      .references(() => contracts.id),
+    name: text('name').notNull(),
+    startDate: date('start_date', { mode: 'string' }).notNull(),
+    endDate: date('end_date', { mode: 'string' }).notNull(),
+    legalName: text('legal_name').notNull().default(''),
+    contractStart: date('contract_start', { mode: 'string' }),
+    contractEnd: date('contract_end', { mode: 'string' }),
+    /** Кто создал — имя из сессии. */
+    createdBy: text('created_by').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('campaigns_advertiser_idx').on(t.advertiserId),
+    index('campaigns_contract_idx').on(t.contractId),
+    check('campaigns_period_check', sql`${t.endDate} >= ${t.startDate}`),
+  ],
+)

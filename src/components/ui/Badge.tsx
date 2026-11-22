@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 // Бейдж — прямоугольная «табличка» с тонкой рамкой в цвет статуса.
@@ -10,12 +11,24 @@ const tones = {
   lime: 'bg-lime-50 text-lime-600 border-lime-200',
 }
 
-export function Badge({ tone = 'muted', className, dot = false, children }) {
+export type BadgeTone = keyof typeof tones
+
+export function Badge({
+  tone = 'muted',
+  className,
+  dot = false,
+  children,
+}: {
+  tone?: BadgeTone
+  className?: string
+  dot?: boolean
+  children: ReactNode
+}) {
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-sm border px-2 py-[3px] text-[11.5px] font-semibold leading-tight',
-        tones[tone] || tones.muted,
+        tones[tone] ?? tones.muted,
         className,
       )}
     >

@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useIsClient } from '@/lib/useIsClient'
 import { fileHref } from '@/features/files/download'
@@ -14,10 +14,23 @@ const CLOSE_MS = 220
 // Формы и карточки открываются боковой панелью во всю высоту экрана —
 // ширина зависит от размера. Короткие предупреждения (sm или без тела)
 // остаются диалогом по центру: панель на одну фразу выглядела бы пустой.
-const drawerWidths = {
+const drawerWidths: Record<string, string> = {
   md: 'sm:w-[520px]',
   lg: 'sm:w-[680px]',
   xl: 'sm:w-[860px]',
+}
+
+export interface ModalProps {
+  open: boolean
+  onClose: () => void
+  title: ReactNode
+  description?: ReactNode
+  icon?: LucideIcon
+  /** Логотип бренда ссылкой или готовым элементом — вместо иконки. */
+  logo?: string | ReactNode
+  children?: ReactNode
+  footer?: ReactNode
+  size?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export function Modal({
@@ -31,7 +44,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
-}) {
+}: ModalProps) {
   const logoSrc = fileHref(typeof logo === 'string' ? logo : null)
   const hasBody = children != null && children !== false
   const asDialog = size === 'sm' || !hasBody
@@ -52,7 +65,7 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => e.key === 'Escape' && onClose?.()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose?.()
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
