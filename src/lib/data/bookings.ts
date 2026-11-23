@@ -1,5 +1,5 @@
 import 'server-only'
-import { and, asc, between, eq, inArray, type SQL } from 'drizzle-orm'
+import { and, asc, between, eq, gte, inArray, type SQL } from 'drizzle-orm'
 import { getDb } from '@/db'
 import {
   advertisers,
@@ -130,6 +130,32 @@ export async function bookingsBetween(from: string, to: string) {
 export type CalendarBooking = Awaited<
   ReturnType<typeof bookingsBetween>
 >[number]
+
+const UPCOMING_LIMIT = 60
+
+/**
+ * Ближайшие публикации с указанного дня — для панели справа от календаря.
+ * Рекламодателю — только его: чужие занятые слоты ему в списке ни к чему.
+ */
+export async function upcomingBookings(from: string) {
+  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+  if (user.role === 'advertiser' && !user.advertiserId) return []
+  const rows = await bookingsQuery(
+    and(
+      gte(bookings.date, from),
+      user.role === 'advertiser'
+        ? eq(bookings.advertiserId, user.advertiserId!)
+        : undefined,
+    ),
+  )
+    .orderBy(
+      asc(bookings.date),
+      asc(bookings.time),
+      asc(placementFormats.position),
+    )
+    .limit(UPCOMING_LIMIT)
+  return withPayments(rows)
+}
 
 /** Менеджеры для брони — сотрудники площадки с активной учётной записью. */
 export async function managerOptions() {

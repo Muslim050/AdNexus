@@ -90,7 +90,7 @@ export function TimeGrid({
       ref={scrollRef}
       className="relative h-[calc(100vh-300px)] min-h-[460px] overflow-auto"
     >
-      <div className={cn(days.length > 1 && 'min-w-[840px]')}>
+      <div className={cn(days.length > 1 && 'min-w-[760px]')}>
         {/* Шапка с днями — прилипает при прокрутке. */}
         <div
           data-grid-header

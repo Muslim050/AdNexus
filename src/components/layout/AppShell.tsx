@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
+import { cn } from '@/lib/cn'
 import { Topbar } from './Topbar'
 import { MobileNav } from './Navigation'
 
@@ -13,6 +14,8 @@ import { MobileNav } from './Navigation'
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false)
   const pathname = usePathname()
+  // Календарю с панелями нужна вся ширина, иначе дни недели узкие.
+  const wide = pathname === '/calendar'
 
   return (
     <div className="flex min-h-screen flex-col bg-paper">
@@ -46,13 +49,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 px-5 pb-12 pt-7 sm:px-8 sm:pt-9">
+      <main
+        className={cn('flex-1 px-5 pb-12 pt-7 sm:pt-9', !wide && 'sm:px-8')}
+      >
         <motion.div
           key={pathname}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="mx-auto max-w-[1280px]"
+          className={cn('mx-auto', wide ? 'max-w-[1760px]' : 'max-w-[1280px]')}
         >
           {children}
         </motion.div>

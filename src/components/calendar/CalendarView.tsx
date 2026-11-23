@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  PanelRight,
   Pencil,
   Plus,
 } from 'lucide-react'
@@ -14,6 +15,7 @@ import { FormDrawer } from '@/components/forms/CreateDrawer'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import type { Role } from '@/lib/roles'
+import { useStoredFlag } from '@/lib/useStoredFlag'
 import { addDays, humanDate, longDay, weekDays, weekTitle } from '@/lib/week'
 import {
   BookingFields,
@@ -31,6 +33,7 @@ import {
   type CalendarSlot,
   type CalendarView as View,
 } from './types'
+import { UpcomingPanel } from './UpcomingPanel'
 
 interface Props {
   view: View
@@ -39,6 +42,8 @@ interface Props {
   weekStart: string
   today: string
   slots: CalendarSlot[]
+  /** Ближайшие публикации с сегодняшнего дня — панель справа. */
+  upcoming: CalendarSlot[]
   formats: FormatChoice[]
   managers: ManagerChoice[]
   advertisers: AdvertiserChoice[]
@@ -53,6 +58,7 @@ export function CalendarView({
   weekStart,
   today,
   slots,
+  upcoming,
   formats,
   managers,
   advertisers,
@@ -75,7 +81,8 @@ export function CalendarView({
   // Открытую бронь берём из свежих данных по id: после выплаты или смены
   // статуса сервер присылает обновлённые слоты, и карточка обновляется сама.
   const [openedId, setOpenedId] = useState<string | null>(null)
-  const opened = slots.find((s) => s.id === openedId) ?? null
+  const opened = [...slots, ...upcoming].find((s) => s.id === openedId) ?? null
+  const [panelHidden, setPanelHidden] = useStoredFlag('calendar-panel-hidden')
   const [editing, setEditing] = useState<{
     open: boolean
     slot: CalendarSlot | null
@@ -103,7 +110,12 @@ export function CalendarView({
     setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]))
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[232px_minmax(0,1fr)]">
+    <div
+      className={cn(
+        'grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]',
+        !panelHidden && 'min-[82.5rem]:grid-cols-[220px_minmax(0,1fr)_264px]',
+      )}
+    >
       <aside className="hidden space-y-7 lg:block">
         {canBook && (
           <Button
@@ -186,6 +198,16 @@ export function CalendarView({
                 </Link>
               ))}
             </div>
+            {panelHidden && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setPanelHidden(false)}
+              >
+                <PanelRight size={15} />
+                Ближайшие
+              </Button>
+            )}
             {canBook && (
               <Button
                 size="sm"
@@ -222,6 +244,21 @@ export function CalendarView({
           </p>
         )}
       </section>
+
+      {!panelHidden && (
+        <div className="relative min-w-0 lg:col-start-2 min-[82.5rem]:col-start-auto">
+          <UpcomingPanel
+            view={view}
+            today={today}
+            slots={upcoming.filter((s) => !hidden.includes(s.formatId))}
+            onOpen={(s) => setOpenedId(s.id)}
+            onHide={() => setPanelHidden(true)}
+            onBook={canBook ? bookDefault : undefined}
+            canCreate={canCreate}
+            createHint={createHint}
+          />
+        </div>
+      )}
 
       <div className="lg:hidden">
         <FormatLegend formats={formats} hidden={hidden} onToggle={toggle} />

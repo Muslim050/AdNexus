@@ -37,6 +37,21 @@ const MONTHS_GEN = [
   'декабря',
 ]
 
+const MONTHS_SHORT = [
+  'янв',
+  'февр',
+  'мар',
+  'апр',
+  'мая',
+  'июн',
+  'июл',
+  'авг',
+  'сент',
+  'окт',
+  'нояб',
+  'дек',
+]
+
 const toDate = (iso: string) => {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d))
@@ -100,6 +115,12 @@ export function humanDate(iso: string): string {
 export function longDay(iso: string): string {
   const dow = WEEKDAYS[(toDate(iso).getUTCDay() + 6) % 7].toLowerCase()
   return `${dayOfMonth(iso)} ${MONTHS_GEN[monthIndex(iso)]} ${yearOf(iso)}, ${dow}`
+}
+
+/** «Пт, 27 нояб» — заголовок дня в панели ближайших. */
+export function shortDay(iso: string): string {
+  const dow = WEEKDAYS_MINI[(toDate(iso).getUTCDay() + 6) % 7]
+  return `${dow}, ${dayOfMonth(iso)} ${MONTHS_SHORT[monthIndex(iso)]}`
 }
 
 /** Сетка мини-календаря: 6 недель с понедельника, покрывающие месяц. */
