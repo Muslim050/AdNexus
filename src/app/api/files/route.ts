@@ -3,7 +3,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { getDb } from '@/db'
 import { bookings, contracts } from '@/db/schema'
 import { getCurrentUser } from '@/lib/auth'
-import { FILE_FOLDERS } from '@/lib/files'
+import { FILE_FOLDERS, isShowcase, opensInline } from '@/lib/files'
 
 /**
  * Отдаёт файл из приватного Blob вошедшему пользователю. Сотрудникам — любой,
@@ -25,8 +25,8 @@ export async function GET(request: Request) {
   // Рекламодателю — только файлы своего бренда: его договоры и брони.
   if (
     user.role === 'advertiser' &&
-    // Превью форматов — витрина, их видит любой вошедший.
-    !path.startsWith('formats/') &&
+    // Превью форматов и логотипы — витрина, их видит любой вошедший.
+    !isShowcase(path) &&
     !(await ownsFile(user.advertiserId, path))
   ) {
     return new Response('Нет доступа', { status: 403 })
@@ -40,11 +40,15 @@ export async function GET(request: Request) {
   const name = (url.searchParams.get('name') || path.split('/').pop() || 'file')
     .replace(/[\r\n"]/g, '')
     .slice(0, 255)
-  const disposition = url.searchParams.get('download') ? 'attachment' : 'inline'
+  const contentType = result.blob.contentType || 'application/octet-stream'
+  const disposition =
+    url.searchParams.get('download') || !opensInline(contentType)
+      ? 'attachment'
+      : 'inline'
 
   return new Response(result.stream, {
     headers: {
-      'Content-Type': result.blob.contentType || 'application/octet-stream',
+      'Content-Type': contentType,
       'Content-Length': String(result.blob.size),
       // Имя в UTF-8 — кириллица в названии файла не ломается.
       'Content-Disposition': `${disposition}; filename="file"; filename*=UTF-8''${encodeURIComponent(name)}`,

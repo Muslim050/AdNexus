@@ -24,7 +24,9 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
 /** Пользователь обязателен — иначе на вход. */
 export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser()
-  if (!user) redirect('/login')
+  // ended: cookie ещё жива, а доступа уже нет — proxy её уберёт, иначе вход
+  // и кабинет перекидывали бы друг на друга без конца.
+  if (!user) redirect('/login?ended=1')
   return user
 }
 

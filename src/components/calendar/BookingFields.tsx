@@ -8,6 +8,7 @@ import { FileDrop, FileLink } from '@/components/ui/FileDrop'
 import { SelectField } from '@/components/ui/SelectField'
 import { TimePicker } from '@/components/ui/TimePicker'
 import type { ContractStatus } from '@/db/schema'
+import type { AdvertiserStatus } from '@/lib/advertisers'
 import { BOOKING_STATUS, type BookingStatus } from '@/lib/bookings'
 import { CONTRACT_STATUS } from '@/lib/contracts'
 import { formatPeriod } from '@/lib/dates'
@@ -33,6 +34,8 @@ export interface ManagerChoice {
 export interface AdvertiserChoice {
   id: string
   name: string
+  status: AdvertiserStatus
+  creativeRequired: boolean
 }
 
 export interface ContractChoice {
@@ -118,10 +121,18 @@ export function BookingFields({
     Boolean(initial && Number(initial.amount)),
   )
 
-  // Только бренды с договорами: без договора слот не забронировать.
-  const withContracts = advertisers.filter((a) =>
-    contracts.some((c) => c.advertiserId === a.id),
+  // Только действующие бренды с договорами: без договора слот не забронировать.
+  // Отключённый остаётся в списке у брони, которая за ним стоит.
+  const withContracts = advertisers.filter(
+    (a) =>
+      (a.status === 'active' || a.id === initial?.advertiserId) &&
+      contracts.some((c) => c.advertiserId === a.id),
   )
+  // Ролик обязателен для новой брони бренда; у старой брони без файла — нет.
+  const brand = advertisers.find((a) => a.id === advertiserId)
+  const fileRequired =
+    !!brand?.creativeRequired &&
+    (!initial || !!initial.file || initial.advertiserId !== advertiserId)
   const brandContracts = contracts.filter(
     (c) => c.advertiserId === advertiserId,
   )
@@ -363,8 +374,13 @@ export function BookingFields({
 
       <Field
         group
-        label="Файл"
-        hint="Креатив, ТЗ или другие материалы слота."
+        label={fileRequired ? 'Рекламный ролик' : 'Файл'}
+        required={fileRequired}
+        hint={
+          fileRequired
+            ? 'Для этого рекламодателя ролик обязателен.'
+            : 'Креатив, ТЗ или другие материалы слота.'
+        }
         error={errors?.file}
       >
         <FileDrop

@@ -5,6 +5,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import { del } from '@vercel/blob'
 import { getDb } from '@/db'
 import {
+  advertisers,
   bookingPayments,
   bookings,
   contracts,
@@ -49,7 +50,12 @@ interface BookingValues {
 async function readBooking(
   fd: FormData,
   user: SessionUser,
-  currentFormatId?: string,
+  /** Бронь при правке: её формат и бренд остаются доступны. */
+  current?: {
+    formatId: string
+    advertiserId: string | null
+    file: AttachedFile | null
+  },
 ): Promise<
   | { ok: true; values: BookingValues; formatName: string }
   | { ok: false; state: FormState }
@@ -90,7 +96,7 @@ async function readBooking(
   }
 
   const db = getDb()
-  const [[format], managerOk, [contract]] = await Promise.all([
+  const [[format], managerOk, [contract], [brand]] = await Promise.all([
     db
       .select({
         name: placementFormats.name,
@@ -125,9 +131,17 @@ async function readBooking(
         ),
       )
       .limit(1),
+    db
+      .select({
+        status: advertisers.status,
+        creativeRequired: advertisers.creativeRequired,
+      })
+      .from(advertisers)
+      .where(eq(advertisers.id, values.advertiserId))
+      .limit(1),
   ])
   // Отключённый формат нельзя выбрать заново, но бронь на нём можно править.
-  if (!format || (!format.isActive && values.formatId !== currentFormatId)) {
+  if (!format || (!format.isActive && values.formatId !== current?.formatId)) {
     return { ok: false, state: { errors: { formatId: 'Формат не найден' } } }
   }
   if (!managerOk) {
@@ -138,6 +152,30 @@ async function readBooking(
       ok: false,
       state: {
         errors: { contractId: 'Договор не найден у этого рекламодателя' },
+      },
+    }
+  }
+  // Отключённый бренд новых броней не получает, старые править можно.
+  if (
+    brand?.status === 'paused' &&
+    values.advertiserId !== current?.advertiserId
+  ) {
+    return {
+      ok: false,
+      state: { errors: { advertiserId: 'Рекламодатель отключён' } },
+    }
+  }
+  // «Рекламный ролик обязателен»: у новой брони файл нужен, а у старой его
+  // нельзя убрать. Брони, созданные до включения флага, правятся как раньше.
+  if (
+    brand?.creativeRequired &&
+    !values.file &&
+    (!current || current.file || current.advertiserId !== values.advertiserId)
+  ) {
+    return {
+      ok: false,
+      state: {
+        errors: { file: 'Для этого рекламодателя ролик обязателен' },
       },
     }
   }
@@ -249,7 +287,7 @@ export async function updateBooking(
   if ('error' in found) return { error: found.error }
   const existing = found.row
 
-  const read = await readBooking(fd, user, existing.formatId)
+  const read = await readBooking(fd, user, existing)
   if (!read.ok) return read.state
   const { values, formatName } = read
 

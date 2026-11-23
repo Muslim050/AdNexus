@@ -14,8 +14,13 @@ export interface AttachedFile {
 }
 
 /** Папки хранилища — по сущностям. Загрузка в другие запрещена. */
-// formats — превью форматов: не секрет, их видит любой вошедший.
-export const FILE_FOLDERS = ['contracts', 'bookings', 'formats'] as const
+// formats — превью форматов, logos — логотипы брендов: их видит любой вошедший.
+export const FILE_FOLDERS = [
+  'contracts',
+  'bookings',
+  'formats',
+  'logos',
+] as const
 export type FileFolder = (typeof FILE_FOLDERS)[number]
 
 /** До 200 МБ: сканы и ролики. */
@@ -103,3 +108,16 @@ export function parseAttachedFiles(
 
 export const isVideo = (f: Pick<AttachedFile, 'contentType' | 'name'>) =>
   f.contentType.startsWith('video/') || /\.(mp4|mov|webm|m4v)$/i.test(f.name)
+
+/** Папки без секретов — витрина: доступны любому вошедшему. */
+export const isShowcase = (pathname: string) =>
+  pathname.startsWith('formats/') || pathname.startsWith('logos/')
+
+/**
+ * Что можно открыть прямо в браузере. SVG и прочее, что способно выполнить
+ * скрипт на нашем домене, — только скачиванием (в <img> оно всё равно видно).
+ */
+export const opensInline = (contentType: string) =>
+  /^(application\/pdf|image\/(png|jpe?g|gif|webp|avif|heic)|video\/[\w.+-]+|text\/plain)(;|$)/i.test(
+    contentType,
+  )

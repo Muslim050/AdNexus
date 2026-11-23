@@ -24,7 +24,12 @@ export default async function Page() {
     listContracts(),
     canCreate ? advertiserOptions() : Promise.resolve([]),
   ])
-  const create = canCreate && <NewContract advertisers={advertisers} />
+  const create = canCreate && (
+    // С отключённым брендом новый договор не заводим.
+    <NewContract
+      advertisers={advertisers.filter((a) => a.status === 'active')}
+    />
+  )
 
   return (
     <>

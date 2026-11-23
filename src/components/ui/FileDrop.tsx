@@ -20,6 +20,9 @@ interface FileDropProps {
   defaultValue?: AttachedFile | null
   hint?: string
   invalid?: boolean
+  /** Только картинки — для логотипа: 'image/*'. */
+  accept?: 'image/*'
+  maxBytes?: number
 }
 
 /** Безопасное имя для пути: буквы, цифры, точка, дефис. Кириллица остаётся. */
@@ -36,6 +39,8 @@ export function FileDrop({
   defaultValue = null,
   hint = 'PDF, Word, Excel, изображения или видео — до 200 МБ',
   invalid,
+  accept,
+  maxBytes = MAX_FILE_BYTES,
 }: FileDropProps) {
   const [file, setFile] = useState<AttachedFile | null>(defaultValue)
   const [progress, setProgress] = useState<number | null>(null)
@@ -46,8 +51,12 @@ export function FileDrop({
 
   const start = async (picked: File) => {
     setError('')
-    if (picked.size > MAX_FILE_BYTES) {
-      setError(`Файл больше ${formatBytes(MAX_FILE_BYTES)}`)
+    if (accept && !picked.type.startsWith('image/')) {
+      setError('Нужна картинка')
+      return
+    }
+    if (picked.size > maxBytes) {
+      setError(`Файл больше ${formatBytes(maxBytes)}`)
       return
     }
     const controller = new AbortController()
@@ -102,6 +111,7 @@ export function FileDrop({
       <input
         ref={inputRef}
         type="file"
+        accept={accept}
         className="sr-only"
         tabIndex={-1}
         onChange={(e) => {
@@ -113,9 +123,18 @@ export function FileDrop({
 
       {file && !uploading ? (
         <div className="flex items-center gap-3 border border-line bg-surface px-3 py-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-50 text-indigo-600">
-            <FileText size={18} />
-          </span>
+          {file.contentType.startsWith('image/') ? (
+            // eslint-disable-next-line @next/next/no-img-element -- приватный файл через наш маршрут
+            <img
+              src={fileHref(file)}
+              alt=""
+              className="h-11 w-11 shrink-0 border border-line bg-white object-contain p-0.5"
+            />
+          ) : (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-indigo-50 text-indigo-600">
+              <FileText size={18} />
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <a
               href={fileHref(file)}

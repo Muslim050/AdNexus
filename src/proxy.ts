@@ -16,6 +16,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
   if (session && onLogin) {
+    // Доступ закрыли при живой cookie: убираем её и показываем вход.
+    if (request.nextUrl.searchParams.has('ended')) {
+      const response = NextResponse.next()
+      response.cookies.delete(SESSION_COOKIE)
+      return response
+    }
     return NextResponse.redirect(new URL(HOME, request.url))
   }
   return NextResponse.next()

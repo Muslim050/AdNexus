@@ -1,11 +1,16 @@
 import 'server-only'
 import { eq } from 'drizzle-orm'
+import type { AdvertiserStatus } from './advertisers'
 import { getDb } from '@/db'
-import { users } from '@/db/schema'
+import { advertisers, users } from '@/db/schema'
 import { checkPassword, hashPassword } from './password'
 import type { SessionUser } from './roles'
 
 type UserRow = typeof users.$inferSelect
+
+/** Вошёл бы: запись включена, а у рекламодателя включён и бренд. */
+const canSignIn = (u: UserRow, brand: AdvertiserStatus | null) =>
+  u.isActive && (u.role !== 'advertiser' || brand !== 'paused')
 
 const toSessionUser = (u: UserRow): SessionUser => ({
   id: u.id,
@@ -24,24 +29,26 @@ export async function verifyUser(
   login: string,
   password: string,
 ): Promise<SessionUser | null> {
-  const [user] = await getDb()
-    .select()
+  const [row] = await getDb()
+    .select({ user: users, brand: advertisers.status })
     .from(users)
+    .leftJoin(advertisers, eq(advertisers.id, users.advertiserId))
     .where(eq(users.login, login.trim().toLowerCase()))
     .limit(1)
-  if (!user) {
+  if (!row) {
     checkPassword(password, DECOY.salt, DECOY.hash)
     return null
   }
-  if (!checkPassword(password, user.salt, user.hash)) return null
-  return user.isActive ? toSessionUser(user) : null
+  if (!checkPassword(password, row.user.salt, row.user.hash)) return null
+  return canSignIn(row.user, row.brand) ? toSessionUser(row.user) : null
 }
 
 export async function getUserById(id: string): Promise<SessionUser | null> {
-  const [user] = await getDb()
-    .select()
+  const [row] = await getDb()
+    .select({ user: users, brand: advertisers.status })
     .from(users)
+    .leftJoin(advertisers, eq(advertisers.id, users.advertiserId))
     .where(eq(users.id, id))
     .limit(1)
-  return user?.isActive ? toSessionUser(user) : null
+  return row && canSignIn(row.user, row.brand) ? toSessionUser(row.user) : null
 }

@@ -29,10 +29,12 @@ interface FormDrawerProps {
   icon: LucideIcon
   action: Action
   submitLabel: string
+  /** Окно по центру вместо боковой панели — для коротких форм. */
+  dialog?: boolean
   children: (state: FormState) => ReactNode
 }
 
-/** Боковая панель с формой, открытием управляет родитель. */
+/** Панель с формой, открытием управляет родитель. */
 export function FormDrawer({
   open,
   onClose,
@@ -42,6 +44,7 @@ export function FormDrawer({
   icon,
   action,
   submitLabel,
+  dialog,
   children,
 }: FormDrawerProps) {
   return (
@@ -51,6 +54,8 @@ export function FormDrawer({
       title={title}
       description={description}
       icon={icon}
+      size={dialog ? 'sm' : 'md'}
+      wide={dialog}
     >
       <DrawerForm
         key={round}

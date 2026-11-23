@@ -38,9 +38,10 @@ export async function POST(request: Request) {
         if (!inFolder || pathname.includes('..')) {
           throw new Error('Недопустимый путь файла')
         }
+        const logo = pathname.startsWith('logos/')
         return {
-          allowedContentTypes: ALLOWED_CONTENT_TYPES,
-          maximumSizeInBytes: MAX_FILE_BYTES,
+          allowedContentTypes: logo ? ['image/*'] : ALLOWED_CONTENT_TYPES,
+          maximumSizeInBytes: logo ? 5 * 1024 * 1024 : MAX_FILE_BYTES,
           // Одинаковые имена файлов не перезаписывают друг друга.
           addRandomSuffix: true,
         }

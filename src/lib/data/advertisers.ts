@@ -4,10 +4,20 @@ import { getDb } from '@/db'
 import { advertisers, contracts, users } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
 
+export interface AdvertiserAccount {
+  id: string
+  login: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  isActive: boolean
+}
+
 export type AdvertiserRow = typeof advertisers.$inferSelect & {
   contractsCount: number
-  /** Логины учётных записей бренда — доступ в кабинет. */
-  logins: string[]
+  /** Учётные записи бренда — доступ в кабинет. */
+  accounts: AdvertiserAccount[]
 }
 
 /** Рекламодатели для площадки: admin и viewer. */
@@ -22,7 +32,16 @@ export async function listAdvertisers(): Promise<AdvertiserRow[]> {
       .groupBy(advertisers.id)
       .orderBy(asc(advertisers.name)),
     db
-      .select({ advertiserId: users.advertiserId, login: users.login })
+      .select({
+        advertiserId: users.advertiserId,
+        id: users.id,
+        login: users.login,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        phone: users.phone,
+        isActive: users.isActive,
+      })
       .from(users)
       .where(sql`${users.advertiserId} is not null`)
       .orderBy(asc(users.login)),
@@ -30,9 +49,17 @@ export async function listAdvertisers(): Promise<AdvertiserRow[]> {
   return rows.map((r) => ({
     ...r.advertiser,
     contractsCount: r.contractsCount,
-    logins: accounts
+    accounts: accounts
       .filter((a) => a.advertiserId === r.advertiser.id)
-      .map((a) => a.login),
+      .map(({ id, login, firstName, lastName, email, phone, isActive }) => ({
+        id,
+        login,
+        firstName,
+        lastName,
+        email,
+        phone,
+        isActive,
+      })),
   }))
 }
 
@@ -44,6 +71,8 @@ export async function advertiserOptions() {
       id: advertisers.id,
       name: advertisers.name,
       legalName: advertisers.legalName,
+      status: advertisers.status,
+      creativeRequired: advertisers.creativeRequired,
     })
     .from(advertisers)
     .orderBy(asc(advertisers.name))

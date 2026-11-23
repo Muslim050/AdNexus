@@ -15,6 +15,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
+import type { AdvertiserStatus } from '../lib/advertisers'
 import type { BookingStatus } from '../lib/bookings'
 import type { AttachedFile } from '../lib/files'
 import type { Role } from '../lib/roles'
@@ -38,7 +39,13 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   /** Логин в нижнем регистре — вход не зависит от регистра. */
   login: text('login').notNull().unique(),
+  /** Как показываем: «Имя Фамилия», а без них — логин. */
   name: text('name').notNull(),
+  firstName: text('first_name').notNull().default(''),
+  lastName: text('last_name').notNull().default(''),
+  email: text('email').notNull().default(''),
+  /** Девять цифр без кода +998. */
+  phone: text('phone').notNull().default(''),
   role: text('role').$type<Role>().notNull(),
   /** Бренд учётной записи рекламодателя: что он видит и бронирует. */
   advertiserId: uuid('advertiser_id').references(
@@ -69,6 +76,14 @@ export const advertisers = pgTable('advertisers', {
   legalName: text('legal_name').notNull().default(''),
   contact: text('contact').notNull().default(''),
   email: text('email').notNull().default(''),
+  status: text('status').$type<AdvertiserStatus>().notNull().default('active'),
+  /** Без файла новую бронь этого бренда не создать. */
+  creativeRequired: boolean('creative_required').notNull().default(false),
+  /** Реквизиты — по строке на пункт. */
+  requisites: text('requisites').notNull().default(''),
+  color: text('color').notNull().default('#0E7745'),
+  /** Логотип в приватном Blob; без него — инициалы на цвете бренда. */
+  logo: jsonb('logo').$type<AttachedFile>(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })
