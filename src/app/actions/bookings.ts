@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { del } from '@vercel/blob'
 import { getDb } from '@/db'
 import {
@@ -170,6 +170,7 @@ async function dropFile(file: AttachedFile | null | undefined) {
 
 function refresh() {
   revalidatePath('/calendar')
+  revalidatePath('/orders')
   revalidatePath('/directory')
 }
 
@@ -178,6 +179,8 @@ async function editableBooking(id: string, user: SessionUser) {
   const [row] = await getDb()
     .select({
       formatId: bookings.formatId,
+      contractId: bookings.contractId,
+      amount: bookings.amount,
       file: bookings.file,
       status: bookings.status,
       advertiserId: bookings.advertiserId,
@@ -256,13 +259,24 @@ export async function updateBooking(
       ? requested
       : existing.status
 
+  // Сумму, которую вписала площадка, рекламодатель не затирает: пересчитываем
+  // её, только если сменились формат или договор — то, из чего она складывается.
+  const samePrice =
+    values.formatId === existing.formatId &&
+    values.contractId === existing.contractId
+
   try {
     await getDb()
       .update(bookings)
       // Менеджера, назначенного площадкой, рекламодатель не сбрасывает.
       .set(
         user.role === 'advertiser'
-          ? { ...values, managerId: undefined, status }
+          ? {
+              ...values,
+              managerId: undefined,
+              amount: samePrice ? existing.amount : values.amount,
+              status,
+            }
           : { ...values, status },
       )
       .where(eq(bookings.id, id))
@@ -303,11 +317,23 @@ export async function deleteBooking(id: string): Promise<FormState> {
   const user = await requireRole(['admin', 'advertiser'])
   const found = await editableBooking(id, user)
   if ('error' in found) return { error: found.error }
+  // Бронь с поступлениями не снимаем: вместе с ней пропала бы история выплат.
+  // Условие — в самом запросе, чтобы выплата не проскочила между проверкой
+  // и удалением.
   const removed = await getDb()
     .delete(bookings)
-    .where(eq(bookings.id, id))
+    .where(
+      and(
+        eq(bookings.id, id),
+        sql`not exists (select 1 from ${bookingPayments} p where p.booking_id = ${bookings.id})`,
+      ),
+    )
     .returning({ id: bookings.id, file: bookings.file })
-  if (!removed.length) return { error: 'Бронь уже удалена' }
+  if (!removed.length) {
+    return {
+      error: 'По брони есть поступления — сначала удалите их в истории выплат',
+    }
+  }
   await dropFile(removed[0].file)
   refresh()
   return {

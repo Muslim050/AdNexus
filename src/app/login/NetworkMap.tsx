@@ -18,7 +18,7 @@ const SLOTS: Slot[] = [
     area: 'col-[1/3] row-[1/3]',
     highlight: true,
   },
-  { code: 'A2', name: 'Размещения', area: 'col-[3/5] row-[1/2]' },
+  { code: 'A2', name: 'Публикации', area: 'col-[3/5] row-[1/2]' },
   { code: 'A3', area: 'col-[5/7] row-[1/2]' },
   { code: 'B1', name: 'Договоры', area: 'col-[3/5] row-[2/4]' },
   { code: 'B2', name: 'Оплаты', area: 'col-[5/7] row-[2/3]' },
@@ -32,9 +32,7 @@ const SLOTS: Slot[] = [
 export function NetworkMap() {
   return (
     <div className="relative">
-      <div className="eyebrow mb-3 text-white/40">
-        Рабочий кабинет
-      </div>
+      <div className="eyebrow mb-3 text-white/40">Рабочий кабинет</div>
       <div className="grid grid-cols-6 grid-rows-[repeat(4,64px)] gap-1.5 border border-white/15 p-1.5 xl:grid-rows-[repeat(4,76px)]">
         {SLOTS.map((slot, index) => (
           <motion.div

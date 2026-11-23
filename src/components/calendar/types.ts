@@ -6,7 +6,7 @@ export interface CalendarSlot {
   date: string
   time: string
   status: BookingStatus
-  /** Сумма размещения и оплачено — decimal-строки. */
+  /** Сумма публикации и оплачено — decimal-строки. */
   amount: string
   paid: string
   payments: BookingPayment[]

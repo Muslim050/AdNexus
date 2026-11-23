@@ -11,8 +11,8 @@ export function NewFormat({ takenColors }: { takenColors: string[] }) {
   return (
     <CreateDrawer
       label="Добавить формат"
-      title="Новый формат размещения"
-      description="Формат задаёт цвет слота в календаре, состав и цену размещения."
+      title="Новый формат публикации"
+      description="Формат задаёт цвет слота в календаре, состав и цену публикации."
       icon={Palette}
       action={createFormat}
       submitLabel="Добавить формат"

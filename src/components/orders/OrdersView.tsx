@@ -219,7 +219,7 @@ function PeriodTabs({
 }
 
 /**
- * «Заказы и медиапланы» — список размещений по образцу броней yakasaroy:
+ * «Заказы и медиапланы» — список публикаций по образцу броней yakasaroy:
  * период, итоги, вкладки статусов, поиск и формат, таблица с оплатой.
  */
 export function OrdersView({
@@ -306,6 +306,8 @@ export function OrdersView({
   const monthIdx =
     query.period === 'all' ? null : Number(query.period.slice(5)) - 1
   const formatName = formats.find((f) => f.id === query.formatId)?.name
+  // Поиск идёт по всем месяцам — подписи итогов не должны обещать месяц.
+  const searching = Boolean(query.q)
 
   return (
     <div className={cn('transition-opacity', pending && 'opacity-60')}>
@@ -338,9 +340,11 @@ export function OrdersView({
         <Kpi
           icon={CalendarDays}
           label={
-            monthIdx === null
-              ? 'Размещения за всё время'
-              : `Размещения в ${MONTHS_IN[monthIdx]}`
+            searching
+              ? 'Найдено публикаций'
+              : monthIdx === null
+                ? 'Публикации за всё время'
+                : `Публикации в ${MONTHS_IN[monthIdx]}`
           }
           value={String(stats.events)}
           note={formatName ? `формат «${formatName}»` : 'во всех форматах'}
@@ -348,9 +352,11 @@ export function OrdersView({
         <Kpi
           icon={Coins}
           label={
-            monthIdx === null
-              ? 'Оплачено за всё время'
-              : `Оплачено за ${MONTHS_FOR[monthIdx]}`
+            searching
+              ? 'Оплачено по найденным'
+              : monthIdx === null
+                ? 'Оплачено за всё время'
+                : `Оплачено за ${MONTHS_FOR[monthIdx]}`
           }
           value={formatSum(stats.paid)}
           note={`из ${formatSum(stats.total)} по сумме броней`}
@@ -358,9 +364,11 @@ export function OrdersView({
         <Kpi
           icon={Hourglass}
           label={
-            monthIdx === null
-              ? 'Остаток за всё время'
-              : `Остаток за ${MONTHS_FOR[monthIdx]}`
+            searching
+              ? 'Остаток по найденным'
+              : monthIdx === null
+                ? 'Остаток за всё время'
+                : `Остаток за ${MONTHS_FOR[monthIdx]}`
           }
           value={formatSum(stats.remaining)}
           note="осталось получить от рекламодателей"
@@ -607,7 +615,7 @@ export function OrdersView({
                   colSpan={8}
                   className="bg-hatch py-14 text-center text-ink-muted"
                 >
-                  Под эти условия размещений нет. Сбросьте поиск или выберите
+                  Под эти условия публикаций нет. Сбросьте поиск или выберите
                   другой месяц или статус.
                 </td>
               </tr>
@@ -650,7 +658,7 @@ export function OrdersView({
           onClose={() => setCreate((c) => ({ ...c, open: false }))}
           round={create.round}
           title={role === 'advertiser' ? 'Заявка на слот' : 'Бронь слота'}
-          description="Выберите дату, время и формат размещения."
+          description="Выберите дату, время и формат публикации."
           icon={CalendarDays}
           action={createBooking}
           submitLabel={

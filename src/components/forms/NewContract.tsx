@@ -105,7 +105,7 @@ export function NewContract({
               />
             </Field>
           </div>
-          <Field label="Файл договора" error={errors?.file}>
+          <Field group label="Файл договора" error={errors?.file}>
             <FileDrop name="file" folder="contracts" />
           </Field>
         </>

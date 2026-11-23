@@ -30,7 +30,7 @@ export default async function Page() {
     <>
       <PageHeader
         title="Справочник"
-        subtitle="Форматы размещений: описание, состав, показы, цена и цвет в календаре."
+        subtitle="Форматы публикаций: описание, состав, показы, цена и цвет в календаре."
       >
         {formats.length > 0 && create}
       </PageHeader>
@@ -39,7 +39,7 @@ export default async function Page() {
         <EmptyState
           icon={BookOpen}
           title="Форматов пока нет"
-          description="Добавьте форматы размещений — без них слот в календаре не забронировать."
+          description="Добавьте форматы публикаций — без них слот в календаре не забронировать."
           action={create}
         />
       ) : (

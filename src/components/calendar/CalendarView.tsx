@@ -211,7 +211,7 @@ export function CalendarView({
 
         {formats.length === 0 && (
           <p className="border-t border-line bg-hatch px-4 py-3 text-sm text-ink-muted">
-            Форматов размещений пока нет — добавьте их в разделе{' '}
+            Форматов публикаций пока нет — добавьте их в разделе{' '}
             <Link
               href="/directory"
               className="font-semibold text-indigo-600 underline-offset-2 hover:underline"

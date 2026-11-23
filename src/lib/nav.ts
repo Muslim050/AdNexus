@@ -21,7 +21,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   {
     href: '/calendar',
-    label: 'Календарь размещений',
+    label: 'Календарь публикаций',
     description: 'Бронирование временных слотов',
     icon: CalendarDays,
     roles: ['admin', 'viewer', 'advertiser'],
@@ -29,7 +29,7 @@ export const NAV: NavItem[] = [
   {
     href: '/orders',
     label: 'Заказы и медиапланы',
-    description: 'Размещения брендов: оплаты и статусы',
+    description: 'Публикации брендов: оплаты и статусы',
     icon: ClipboardList,
     roles: ['admin', 'viewer', 'advertiser'],
   },
@@ -43,7 +43,7 @@ export const NAV: NavItem[] = [
   {
     href: '/directory',
     label: 'Справочник',
-    description: 'Форматы размещений и их цвета в календаре',
+    description: 'Форматы публикаций и их цвета в календаре',
     icon: BookOpen,
     roles: ['admin', 'viewer'],
   },

@@ -17,7 +17,7 @@ import { todayTashkent } from '@/lib/week'
 export const metadata: Metadata = { title: 'Заказы и медиапланы' }
 
 /**
- * Список размещений. Фильтры живут в адресе:
+ * Список публикаций. Фильтры живут в адресе:
  * ?status=sent&month=2026-11&format=…&q=…&page=2
  */
 export default async function Page({ searchParams }: PageProps<'/orders'>) {
@@ -63,7 +63,7 @@ export default async function Page({ searchParams }: PageProps<'/orders'>) {
     <>
       <PageHeader
         title="Заказы и медиапланы"
-        subtitle="Размещения брендов: оплаты и статусы. Нажмите на строку, чтобы открыть карточку."
+        subtitle="Публикации брендов: оплаты и статусы. Нажмите на строку, чтобы открыть карточку."
       />
       <OrdersView
         rows={list.rows}

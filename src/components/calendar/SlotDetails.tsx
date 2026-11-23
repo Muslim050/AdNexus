@@ -127,14 +127,21 @@ export function SlotDetails({
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => setConfirming(true)}
-                  >
-                    <Trash2 size={15} />
-                    {removeLabel}
-                  </Button>
+                  {slot.payments.length > 0 ? (
+                    // С бронью пропала бы история выплат — снять не даём.
+                    <span className="max-w-[210px] text-right text-xs leading-snug text-ink-muted">
+                      Есть поступления — снять бронь нельзя
+                    </span>
+                  ) : (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => setConfirming(true)}
+                    >
+                      <Trash2 size={15} />
+                      {removeLabel}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     onClick={() => {
@@ -206,7 +213,7 @@ export function SlotDetails({
             <PaymentsBlock slot={slot} canEdit={isAdmin} />
           </Block>
 
-          <Block title="Размещение">
+          <Block title="Публикация">
             <Item label="Дата" value={longDay(slot.date)} />
             <Item label="Время" value={slot.time} />
             <Item label="Менеджер" value={slot.managerName ?? 'Не назначен'} />

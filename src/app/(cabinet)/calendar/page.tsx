@@ -8,7 +8,7 @@ import { contractOptions } from '@/lib/data/contracts'
 import { formatOptions } from '@/lib/data/formats'
 import { addDays, isIsoDate, startOfWeek, todayTashkent } from '@/lib/week'
 
-export const metadata: Metadata = { title: 'Календарь размещений' }
+export const metadata: Metadata = { title: 'Календарь публикаций' }
 
 /**
  * Режим и дата задаются адресом: /calendar?d=2026-11-19 — неделя,
@@ -37,7 +37,7 @@ export default async function Page({ searchParams }: PageProps<'/calendar'>) {
   return (
     <>
       <PageHeader
-        title="Календарь размещений"
+        title="Календарь публикаций"
         subtitle="Бронирование временных слотов."
       />
       <CalendarView

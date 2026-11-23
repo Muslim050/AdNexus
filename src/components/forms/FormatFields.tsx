@@ -23,7 +23,7 @@ export interface FormatInitial {
 const toNumber = (v: string) =>
   Number(v.replace(/[\s ]/g, '').replace(',', '.')) || 0
 
-/** Поля формата размещения — для создания и правки. */
+/** Поля формата публикации — для создания и правки. */
 export function FormatFields({
   state,
   initial,
@@ -67,7 +67,7 @@ export function FormatFields({
           name="description"
           rows={3}
           defaultValue={initial?.description}
-          placeholder="Коротко: где и как выходит размещение"
+          placeholder="Коротко: где и как выходит публикация"
         />
       </Field>
 
@@ -146,6 +146,7 @@ export function FormatFields({
       </fieldset>
 
       <Field
+        group
         label="Превью: фото и видео"
         hint="До 10 файлов. Первый — обложка в справочнике."
       >

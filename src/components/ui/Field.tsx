@@ -23,6 +23,11 @@ export interface FieldProps {
   required?: boolean
   children: ReactNode
   className?: string
+  /**
+   * Группа вместо <label> — для загрузки файлов: внутри label клик по зоне
+   * или подписи ещё раз нажимает на поле файла и открывает окно дважды.
+   */
+  group?: boolean
 }
 
 export function Field({
@@ -32,9 +37,14 @@ export function Field({
   required,
   children,
   className,
+  group = false,
 }: FieldProps) {
+  const Root = group ? 'div' : 'label'
   return (
-    <label className={cn('block space-y-1.5', className)}>
+    <Root
+      role={group ? 'group' : undefined}
+      className={cn('block space-y-1.5', className)}
+    >
       {label && (
         <span className="flex items-center gap-1 text-[11.5px] font-bold uppercase tracking-[0.06em] text-ink-soft">
           {label}
@@ -47,7 +57,7 @@ export function Field({
       ) : hint ? (
         <span className="block text-xs text-ink-muted">{hint}</span>
       ) : null}
-    </label>
+    </Root>
   )
 }
 

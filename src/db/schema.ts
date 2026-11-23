@@ -138,9 +138,9 @@ export const campaigns = pgTable(
   ],
 )
 
-/* ------------------------ календарь размещений ------------------------ */
+/* ------------------------ календарь публикаций ------------------------ */
 
-/** Справочник форматов размещения: «Post Instagram uzb», «Anons Tg uzb»… */
+/** Справочник форматов публикации: «Post Instagram uzb», «Anons Tg uzb»… */
 export const placementFormats = pgTable('placement_formats', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(),
@@ -148,9 +148,9 @@ export const placementFormats = pgTable('placement_formats', {
   color: text('color').notNull(),
   /** Описание формата для менеджеров и рекламодателей. */
   description: text('description').notNull().default(''),
-  /** Что входит в размещение — по пункту на строку. */
+  /** Что входит в публикацию — по пункту на строку. */
   includes: text('includes').notNull().default(''),
-  /** Сумма показов, которую даёт размещение. */
+  /** Сумма показов, которую даёт публикация. */
   impressions: bigint('impressions', { mode: 'number' }).notNull().default(0),
   /** Стоимость одного показа, сум. */
   pricePerImpression: numeric('price_per_impression', {
@@ -189,7 +189,7 @@ export const bookings = pgTable(
     managerId: uuid('manager_id').references(() => users.id),
     /** Воронка брони: Отправлен → Получен → Рассматривается → Активен → Выполнен. */
     status: text('status').$type<BookingStatus>().notNull().default('sent'),
-    /** Сумма размещения, сум. Оплачено — сумма поступлений в booking_payments. */
+    /** Сумма публикации, сум. Оплачено — сумма поступлений в booking_payments. */
     amount: numeric('amount', { precision: 16, scale: 2 })
       .notNull()
       .default('0'),

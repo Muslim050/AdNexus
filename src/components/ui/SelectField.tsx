@@ -16,7 +16,7 @@ export interface SelectOption {
   label: string
   /** Вторая строка в списке: номер, срок, роль. */
   hint?: ReactNode
-  /** Цветная метка слева — у форматов размещения. */
+  /** Цветная метка слева — у форматов публикации. */
   color?: string
   disabled?: boolean
 }

@@ -20,13 +20,10 @@ export default function LoginPage() {
 
         <div className="relative my-10 max-w-[620px] animate-fade-up">
           <p className="eyebrow text-lime-300">Рекламная платформа</p>
-          <h2 className="mt-4 font-display text-[44px] font-extrabold leading-[1.02] tracking-[-0.035em] xl:text-[56px]">
-            Все размещения бренда — в&nbsp;одной точке.
+          <h2 className="mt-4 font-display text-[36px] font-extrabold leading-[1.08] tracking-[-0.035em] xl:text-[46px]">
+            Все публикации, договоры, оплаты и&nbsp;отчёты — в&nbsp;едином
+            кабинете AdNexus
           </h2>
-          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/60">
-            Кампании, договоры, оплаты и отчёты рекламодателей AdNexus —
-            в&nbsp;одном кабинете.
-          </p>
         </div>
 
         <div className="relative max-w-[620px]">

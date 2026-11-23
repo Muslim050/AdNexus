@@ -204,7 +204,7 @@ export function BookingFields({
         </div>
       )}
 
-      <Field label="Формат размещения" required error={errors?.formatId}>
+      <Field label="Формат публикации" required error={errors?.formatId}>
         <SelectField
           name="formatId"
           placeholder="Выберите формат"
@@ -361,7 +361,12 @@ export function BookingFields({
         </Field>
       )}
 
-      <Field label="Файл" hint="Креатив, ТЗ или другие материалы слота.">
+      <Field
+        group
+        label="Файл"
+        hint="Креатив, ТЗ или другие материалы слота."
+        error={errors?.file}
+      >
         <FileDrop
           name="file"
           folder="bookings"

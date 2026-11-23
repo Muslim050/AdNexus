@@ -36,7 +36,7 @@ export const ORDERS_PAGE_SIZE = 20
 const paidSql = sql<string>`coalesce((select sum(p.amount) from booking_payments p where p.booking_id = ${bookings.id}), 0)`
 
 /**
- * Список размещений для «Заказов и медиапланов»: страница, счётчики по
+ * Список публикаций для «Заказов и медиапланов»: страница, счётчики по
  * статусам и итоги за месяц. Рекламодателю — только его бренд.
  */
 export async function listOrders(query: OrdersQuery) {
@@ -112,15 +112,21 @@ export async function listOrders(query: OrdersQuery) {
       .leftJoin(contracts, eq(contracts.id, bookings.contractId))
       .where(countWhere)
       .groupBy(bookings.status),
-    // Итоги — за месяц и формат, без учёта статуса и поиска.
+    // Итоги — по тем же броням, что и счётчики: месяц, формат и поиск, без
+    // статуса. Остаток считаем по каждой брони: переплата одной не гасит
+    // долг другой.
     db
       .select({
         events: count(),
         total: sql<string>`coalesce(sum(${bookings.amount}), 0)`,
         paid: sql<string>`coalesce(sum(${paidSql}), 0)`,
+        remaining: sql<string>`coalesce(sum(greatest(${bookings.amount} - ${paidSql}, 0)), 0)`,
       })
       .from(bookings)
-      .where(and(...scope)),
+      .innerJoin(placementFormats, eq(placementFormats.id, bookings.formatId))
+      .leftJoin(advertisers, eq(advertisers.id, bookings.advertiserId))
+      .leftJoin(contracts, eq(contracts.id, bookings.contractId))
+      .where(countWhere),
   ])
 
   const counts = Object.fromEntries(
@@ -143,7 +149,7 @@ export async function listOrders(query: OrdersQuery) {
       events: statsRow[0]?.events ?? 0,
       total,
       paid,
-      remaining: Math.max(0, total - paid),
+      remaining: Number(statsRow[0]?.remaining ?? 0),
     },
   }
 }
