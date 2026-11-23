@@ -32,7 +32,13 @@ export async function GET(request: Request) {
     return new Response('Нет доступа', { status: 403 })
   }
 
-  const result = await get(path, { access: 'private' })
+  // Плееру нужны куски файла: без Range Safari видео не играет, а Chrome
+  // не перематывает.
+  const range = request.headers.get('range')
+  const result = await get(path, {
+    access: 'private',
+    headers: range ? { range } : undefined,
+  })
   if (!result || result.statusCode !== 200) {
     return new Response('Файл не найден', { status: 404 })
   }
@@ -46,13 +52,24 @@ export async function GET(request: Request) {
       ? 'attachment'
       : 'inline'
 
+  const contentRange = result.headers.get('content-range')
+  const length = contentRange
+    ? result.headers.get('content-length')
+    : String(result.blob.size)
+
   return new Response(result.stream, {
+    status: contentRange ? 206 : 200,
     headers: {
       'Content-Type': contentType,
-      'Content-Length': String(result.blob.size),
+      ...(length ? { 'Content-Length': length } : {}),
+      ...(contentRange ? { 'Content-Range': contentRange } : {}),
+      'Accept-Ranges': 'bytes',
       // Имя в UTF-8 — кириллица в названии файла не ломается.
       'Content-Disposition': `${disposition}; filename="file"; filename*=UTF-8''${encodeURIComponent(name)}`,
-      'Cache-Control': 'private, no-store',
+      // Имя файла в Blob уникально, поэтому витрину браузер может хранить.
+      'Cache-Control': isShowcase(path)
+        ? 'private, max-age=86400, immutable'
+        : 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
     },
   })

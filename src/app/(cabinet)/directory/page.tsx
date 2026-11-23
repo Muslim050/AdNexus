@@ -1,15 +1,13 @@
 import type { Metadata } from 'next'
 import { BookOpen, Check } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
+import { FormatMedia } from '@/components/directory/FormatMedia'
 import { EditFormat, NewFormat } from '@/components/forms/NewFormat'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { MediaThumb } from '@/components/ui/MediaUpload'
 import { requireSection } from '@/lib/auth'
 import { listFormats } from '@/lib/data/formats'
-import { fileHref } from '@/lib/files'
 import { formatSum } from '@/lib/forms'
-import { textOn } from '@/lib/palette'
 
 export const metadata: Metadata = { title: 'Справочник' }
 
@@ -45,7 +43,6 @@ export default async function Page() {
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {formats.map((f) => {
-            const cover = f.media[0]
             const included = lines(f.includes)
             const total = f.impressions * Number(f.pricePerImpression)
             return (
@@ -53,47 +50,17 @@ export default async function Page() {
                 key={f.id}
                 className="flex flex-col border border-line bg-surface"
               >
-                {/* Обложка: первое фото или видео; без них — плашка цвета. */}
-                <div className="relative aspect-video overflow-hidden bg-forest">
-                  {cover ? (
-                    <MediaThumb file={cover} />
-                  ) : (
-                    <div
-                      className="flex h-full items-center justify-center bg-hatch"
-                      style={{ backgroundColor: `${f.color}1f` }}
-                    >
-                      <span className="eyebrow text-ink-muted">Нет превью</span>
-                    </div>
-                  )}
-                  <span
-                    className="absolute left-0 top-0 max-w-[85%] truncate px-2.5 py-1 text-[12px] font-bold"
-                    style={{ background: f.color, color: textOn(f.color) }}
-                  >
-                    {f.name}
-                  </span>
-                  {f.media.length > 1 && (
-                    <span className="eyebrow absolute bottom-2 right-2 bg-forest/75 px-1.5 py-0.5 text-white">
-                      +{f.media.length - 1} {filesWord(f.media.length - 1)}
-                    </span>
-                  )}
-                </div>
-
-                {f.media.length > 1 && (
-                  <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-line p-2">
-                    {f.media.map((m) => (
-                      <a
-                        key={m.pathname}
-                        href={fileHref(m)}
-                        target="_blank"
-                        rel="noopener"
-                        title={m.name}
-                        className="h-12 w-20 shrink-0 overflow-hidden bg-forest focus-ring"
-                      >
-                        <MediaThumb file={m} />
-                      </a>
-                    ))}
-                  </div>
-                )}
+                <FormatMedia
+                  format={{
+                    name: f.name,
+                    color: f.color,
+                    description: f.description,
+                    includes: included,
+                    impressions: f.impressions,
+                    price: total ? formatSum(total) : 'Цена не указана',
+                    media: f.media,
+                  }}
+                />
 
                 <div className="flex flex-1 flex-col gap-4 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -176,14 +143,6 @@ export default async function Page() {
       )}
     </>
   )
-}
-
-function filesWord(n: number) {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return 'файл'
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'файла'
-  return 'файлов'
 }
 
 function Stat({
