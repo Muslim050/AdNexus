@@ -2,10 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { and, eq, inArray, sql } from 'drizzle-orm'
-import { del } from '@vercel/blob'
 import { getDb } from '@/db'
 import {
   advertisers,
+  bookingFacts,
   bookingPayments,
   bookings,
   contracts,
@@ -13,6 +13,7 @@ import {
   users,
 } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
+import { dropFile } from '@/lib/blob'
 import { isBookingStatus, type BookingStatus } from '@/lib/bookings'
 import { formatDay } from '@/lib/dates'
 import { parseAttachedFile, type AttachedFile } from '@/lib/files'
@@ -24,7 +25,13 @@ import {
   type FormState,
 } from '@/lib/forms'
 import { suggestedAmount } from '@/lib/pricing'
-import type { SessionUser } from '@/lib/roles'
+import {
+  BOOKERS,
+  EDITORS,
+  isEditor,
+  type SessionUser,
+  STAFF,
+} from '@/lib/roles'
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -115,7 +122,7 @@ async function readBooking(
             and(
               eq(users.id, values.managerId),
               eq(users.isActive, true),
-              inArray(users.role, ['admin', 'viewer']),
+              inArray(users.role, STAFF),
             ),
           )
           .limit(1)
@@ -196,20 +203,11 @@ const slotTaken = (v: BookingValues, formatName: string): FormState => ({
   },
 })
 
-/** Удалить файл из Blob, не роняя действие: строка в базе важнее. */
-async function dropFile(file: AttachedFile | null | undefined) {
-  if (!file) return
-  try {
-    await del(file.pathname)
-  } catch (err) {
-    console.error('Не удалось удалить файл из Blob', file.pathname, err)
-  }
-}
-
 function refresh() {
   revalidatePath('/calendar')
   revalidatePath('/orders')
   revalidatePath('/directory')
+  revalidatePath('/facts')
 }
 
 /** Бронь, которую пользователь вправе менять: admin — любую, рекламодатель — свою и пока «Отправлен». */
@@ -248,14 +246,14 @@ export async function createBooking(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const user = await requireRole(['admin', 'advertiser'])
+  const user = await requireRole(BOOKERS)
   const read = await readBooking(fd, user)
   if (!read.ok) return read.state
   const { values, formatName } = read
 
   const requested = text(fd, 'status', 20)
   const status: BookingStatus =
-    user.role === 'admin' && isBookingStatus(requested) ? requested : 'sent'
+    isEditor(user.role) && isBookingStatus(requested) ? requested : 'sent'
 
   try {
     await getDb()
@@ -281,7 +279,7 @@ export async function updateBooking(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const user = await requireRole(['admin', 'advertiser'])
+  const user = await requireRole(BOOKERS)
   const id = text(fd, 'id', 36)
   const found = await editableBooking(id, user)
   if ('error' in found) return { error: found.error }
@@ -293,7 +291,7 @@ export async function updateBooking(
 
   const requested = text(fd, 'status', 20)
   const status =
-    user.role === 'admin' && isBookingStatus(requested)
+    isEditor(user.role) && isBookingStatus(requested)
       ? requested
       : existing.status
 
@@ -338,7 +336,7 @@ export async function setBookingStatus(
   id: string,
   status: string,
 ): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
   if (!isBookingStatus(status)) return { error: 'Неизвестный статус' }
   const updated = await getDb()
     .update(bookings)
@@ -352,10 +350,11 @@ export async function setBookingStatus(
 
 /** Снять бронь: admin — любую, рекламодатель — свою, пока «Отправлен». */
 export async function deleteBooking(id: string): Promise<FormState> {
-  const user = await requireRole(['admin', 'advertiser'])
+  const user = await requireRole(BOOKERS)
   const found = await editableBooking(id, user)
   if ('error' in found) return { error: found.error }
-  // Бронь с поступлениями не снимаем: вместе с ней пропала бы история выплат.
+  // Бронь с поступлениями или фактом не снимаем: вместе с ней пропала бы
+  // история выплат и стыковка.
   // Условие — в самом запросе, чтобы выплата не проскочила между проверкой
   // и удалением.
   const removed = await getDb()
@@ -364,12 +363,14 @@ export async function deleteBooking(id: string): Promise<FormState> {
       and(
         eq(bookings.id, id),
         sql`not exists (select 1 from ${bookingPayments} p where p.booking_id = ${bookings.id})`,
+        sql`not exists (select 1 from ${bookingFacts} f where f.booking_id = ${bookings.id})`,
       ),
     )
     .returning({ id: bookings.id, file: bookings.file })
   if (!removed.length) {
     return {
-      error: 'По брони есть поступления — сначала удалите их в истории выплат',
+      error:
+        'По брони есть поступления или факт публикации — сначала удалите их',
     }
   }
   await dropFile(removed[0].file)
@@ -385,7 +386,7 @@ export async function addBookingPayment(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const user = await requireRole(['admin'])
+  const user = await requireRole(EDITORS)
   const bookingId = text(fd, 'bookingId', 36)
   const amount = numberField(fd, 'amount')
   const date = dateField(fd, 'date')
@@ -426,7 +427,7 @@ export async function addBookingPayment(
 
 /** Удалить ошибочное поступление. Только admin. */
 export async function deleteBookingPayment(id: string): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
   const removed = await getDb()
     .delete(bookingPayments)
     .where(eq(bookingPayments.id, id))

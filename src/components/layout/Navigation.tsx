@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname } from 'next/navigation'
 import { navFor, sectionNo } from '@/lib/nav'
 import { useSessionUser } from '@/components/session/SessionProvider'
@@ -47,18 +47,28 @@ export function DesktopNav() {
               {sectionNo(index)}
             </span>
             <span className="whitespace-nowrap">{it.label}</span>
-            <span
-              className={cn(
-                'absolute inset-x-3 bottom-0 h-[3px] transition-all',
-                active
-                  ? 'bg-lime-300'
-                  : 'bg-transparent group-hover:bg-white/15',
-              )}
-            />
+            <NavBar active={active} />
           </Link>
         )
       })}
     </nav>
+  )
+}
+
+/** Планка под пунктом: мигает, пока раздел открывается, — клик виден сразу. */
+function NavBar({ active }: { active: boolean }) {
+  const { pending } = useLinkStatus()
+  return (
+    <span
+      className={cn(
+        'absolute inset-x-3 bottom-0 h-[3px] transition-colors',
+        active
+          ? 'bg-lime-300'
+          : pending
+            ? 'bg-lime-300/70 motion-safe:animate-pulse'
+            : 'bg-transparent group-hover:bg-white/15',
+      )}
+    />
   )
 }
 

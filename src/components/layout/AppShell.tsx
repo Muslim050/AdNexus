@@ -14,11 +14,18 @@ import { MobileNav } from './Navigation'
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false)
   const pathname = usePathname()
-  // Календарю с панелями нужна вся ширина, иначе дни недели узкие.
+  // Календарю с панелями нужна вся ширина, иначе дни недели узкие. На широком
+  // экране он занимает ровно окно: прокручивается сетка, а не страница.
   const wide = pathname === '/calendar'
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper">
+    <div
+      className={cn(
+        'flex min-h-screen flex-col bg-paper',
+        // В низком окне сетке нужна высота — тогда страница прокручивается.
+        wide && 'wide:h-dvh wide:min-h-[640px]',
+      )}
+    >
       <Topbar
         mobileNavOpen={mobileNav}
         onBurger={() => setMobileNav((open) => !open)}
@@ -50,20 +57,33 @@ export function AppShell({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       <main
-        className={cn('flex-1 px-5 pb-12 pt-7 sm:pt-9', !wide && 'sm:px-8')}
+        className={cn(
+          'flex-1 px-5 pb-12 pt-7 sm:pt-9',
+          wide
+            ? 'wide:flex wide:min-h-0 wide:flex-col wide:pb-5 wide:pt-6'
+            : 'sm:px-8',
+        )}
       >
-        <motion.div
+        {/* Без проявления: раздел должен отвечать на клик сразу. */}
+        <div
           key={pathname}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className={cn('mx-auto', wide ? 'max-w-[1760px]' : 'max-w-[1280px]')}
+          className={cn(
+            'mx-auto',
+            wide
+              ? 'max-w-[1760px] wide:flex wide:min-h-0 wide:w-full wide:flex-1 wide:flex-col'
+              : 'max-w-[1280px]',
+          )}
         >
           {children}
-        </motion.div>
+        </div>
       </main>
 
-      <footer className="border-t border-line px-5 py-4 sm:px-8">
+      <footer
+        className={cn(
+          'border-t border-line px-5 py-4 sm:px-8',
+          wide && 'wide:hidden',
+        )}
+      >
         <div className="eyebrow mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-2 text-ink-muted">
           <span>AdNexus · CRM Platform</span>
           <span>Календарь · заказы · справочник</span>

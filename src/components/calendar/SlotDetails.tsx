@@ -1,9 +1,12 @@
 'use client'
 
-import { useState, useTransition, type ReactNode } from 'react'
+import { useState, useTransition } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { deleteBooking, setBookingStatus } from '@/app/actions/bookings'
+import { BrandAvatar } from '@/components/ui/BrandAvatar'
+import { FactBlock } from '@/components/facts/FactBlock'
 import { Button } from '@/components/ui/Button'
+import { Block, Item } from '@/components/ui/DetailBlock'
 import { FileCard } from '@/components/ui/FileDrop'
 import { Modal } from '@/components/ui/Modal'
 import { SelectField } from '@/components/ui/SelectField'
@@ -17,7 +20,8 @@ import { cn } from '@/lib/cn'
 import { formatPeriod } from '@/lib/dates'
 import { formatPercent } from '@/lib/forms'
 import { textOn } from '@/lib/palette'
-import type { Role } from '@/lib/roles'
+import { isEditor, type Role } from '@/lib/roles'
+import { useNow } from '@/lib/useNow'
 import { longDay } from '@/lib/week'
 import { PaymentsBlock } from './PaymentsBlock'
 import { StatusChip } from './StatusChip'
@@ -51,9 +55,17 @@ export function SlotDetails({
     slot && statusOverride?.id === slot.id
       ? statusOverride.status
       : slot?.status
-  const isAdmin = role === 'admin'
+  const canManage = isEditor(role)
+  // Стыковка — когда время по плану прошло или факт уже внесён.
+  const now = useNow()
+  const hasFact =
+    !!slot &&
+    (!!slot.fact ||
+      (canManage &&
+        !!now &&
+        `${slot.date} ${slot.time}` <= `${now.date} ${now.time}`))
   const canChange =
-    !!slot && (isAdmin || (role === 'advertiser' && status === 'sent'))
+    !!slot && (canManage || (role === 'advertiser' && status === 'sent'))
 
   const close = () => {
     setConfirming(false)
@@ -89,7 +101,7 @@ export function SlotDetails({
     })
   }
 
-  const removeLabel = isAdmin ? 'Снять бронь' : 'Отменить заявку'
+  const removeLabel = canManage ? 'Снять бронь' : 'Отменить заявку'
 
   return (
     <Modal
@@ -127,10 +139,12 @@ export function SlotDetails({
                 </>
               ) : (
                 <>
-                  {slot.payments.length > 0 ? (
-                    // С бронью пропала бы история выплат — снять не даём.
+                  {slot.payments.length > 0 || slot.fact ? (
+                    // С бронью пропали бы выплаты и стыковка — снять не даём.
                     <span className="max-w-[210px] text-right text-xs leading-snug text-ink-muted">
-                      Есть поступления — снять бронь нельзя
+                      {slot.fact
+                        ? 'Внесён факт — снять бронь нельзя'
+                        : 'Есть поступления — снять бронь нельзя'}
                     </span>
                   ) : (
                     <Button
@@ -163,27 +177,36 @@ export function SlotDetails({
         <div className="space-y-4">
           {/* Сводка: время крупно, формат его цветом. */}
           <div
-            className="flex items-center gap-4 px-4 py-3.5"
+            className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5 sm:flex-nowrap"
             style={{ background: slot.color, color: textOn(slot.color) }}
           >
             <span className="font-display text-[34px] font-bold leading-none tnum">
               {slot.time}
             </span>
-            <span className="min-w-0 flex-1 border-l border-current/25 pl-4">
-              <span className="block truncate text-[15px] font-bold">
-                {slot.campaignName || slot.formatName}
-              </span>
-              <span className="block truncate text-[12.5px] opacity-80">
-                {slot.advertiserName ?? 'Без рекламодателя'} ·{' '}
-                {slot.managerName ?? 'менеджер не назначен'}
+            <span className="flex min-w-0 flex-1 items-center gap-3 border-l border-current/25 pl-4">
+              {slot.advertiserName && (
+                <BrandAvatar
+                  name={slot.advertiserName}
+                  logo={slot.advertiserLogo}
+                  color={slot.advertiserColor}
+                />
+              )}
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-bold">
+                  {slot.campaignName || slot.formatName}
+                </span>
+                <span className="block truncate text-[12.5px] opacity-80">
+                  {slot.advertiserName ?? 'Без рекламодателя'} ·{' '}
+                  {slot.managerName ?? 'менеджер не назначен'}
+                </span>
               </span>
             </span>
             <StatusChip status={status} />
           </div>
 
           <Block title="Статус" plain>
-            {isAdmin ? (
-              <div className="grid items-center gap-3 sm:grid-cols-[1fr_220px]">
+            {canManage ? (
+              <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
                 <StatusSteps status={status} />
                 <SelectField
                   name="status"
@@ -210,8 +233,14 @@ export function SlotDetails({
           </Block>
 
           <Block title="Оплата" plain>
-            <PaymentsBlock slot={slot} canEdit={isAdmin} />
+            <PaymentsBlock slot={slot} canEdit={canManage} />
           </Block>
+
+          {hasFact && (
+            <Block title="Стыковка" plain>
+              <FactBlock key={slot.id} slot={slot} canEdit={canManage} />
+            </Block>
+          )}
 
           <Block title="Публикация">
             <Item label="Дата" value={longDay(slot.date)} />
@@ -295,59 +324,5 @@ function StatusSteps({ status }: { status: BookingStatus }) {
         </li>
       ))}
     </ol>
-  )
-}
-
-/** Блок карточки: подпись капсом и сетка полей в две колонки. */
-function Block({
-  title,
-  plain,
-  children,
-}: {
-  title: string
-  /** Без сетки — для статуса, файлов и комментария. */
-  plain?: boolean
-  children: ReactNode
-}) {
-  return (
-    <section className="border border-line">
-      <h3 className="eyebrow flex items-center gap-2 border-b border-line bg-paper/70 px-4 py-2.5 font-mono text-ink-muted">
-        <span className="h-1.5 w-1.5 bg-indigo-500" />
-        {title}
-      </h3>
-      {plain ? (
-        <div className="space-y-2 p-4">{children}</div>
-      ) : (
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 p-4 sm:grid-cols-2">
-          {children}
-        </dl>
-      )}
-    </section>
-  )
-}
-
-function Item({
-  label,
-  value,
-  mono,
-  wide,
-}: {
-  label: string
-  value: ReactNode
-  mono?: boolean
-  wide?: boolean
-}) {
-  return (
-    <div className={cn('min-w-0', wide && 'sm:col-span-2')}>
-      <dt className="eyebrow text-ink-muted">{label}</dt>
-      <dd
-        className={cn(
-          'mt-1 truncate text-sm font-semibold text-ink',
-          mono && 'font-mono text-[13px]',
-        )}
-      >
-        {value}
-      </dd>
-    </div>
   )
 }

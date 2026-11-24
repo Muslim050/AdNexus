@@ -9,6 +9,7 @@ import { isAdvertiserStatus, isBrandColor } from '@/lib/advertisers'
 import { requireRole } from '@/lib/auth'
 import { parseAttachedFile } from '@/lib/files'
 import { isEmail, text, type FormState } from '@/lib/forms'
+import { EDITORS } from '@/lib/roles'
 
 /** Поля рекламодателя из формы — общие для создания и правки. */
 function readAdvertiser(fd: FormData) {
@@ -51,7 +52,7 @@ export async function createAdvertiser(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
   const read = readAdvertiser(fd)
   if (!read.ok) return { errors: read.errors }
 
@@ -65,7 +66,7 @@ export async function updateAdvertiser(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
   const id = text(fd, 'id', 36)
   const read = readAdvertiser(fd)
   if (!read.ok) return { errors: read.errors }

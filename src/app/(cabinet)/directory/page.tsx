@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { BookOpen, Check } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
@@ -5,9 +6,11 @@ import { FormatMedia } from '@/components/directory/FormatMedia'
 import { EditFormat, NewFormat } from '@/components/forms/NewFormat'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Loader } from '@/components/ui/Loader'
 import { requireSection } from '@/lib/auth'
 import { listFormats } from '@/lib/data/formats'
 import { formatSum } from '@/lib/forms'
+import { isEditor } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Справочник' }
 
@@ -17,22 +20,43 @@ const lines = (text: string) =>
     .map((l) => l.trim())
     .filter(Boolean)
 
-export default async function Page() {
-  const user = await requireSection('/directory')
-  const formats = await listFormats()
-  const isAdmin = user.role === 'admin'
-  const takenColors = formats.map((f) => f.color)
-  const create = isAdmin && <NewFormat takenColors={takenColors} />
-
+export default function Page() {
   return (
     <>
       <PageHeader
         title="Справочник"
         subtitle="Форматы публикаций: описание, состав, показы, цена и цвет в календаре."
       >
-        {formats.length > 0 && create}
+        <Suspense>
+          <CreateAction />
+        </Suspense>
       </PageHeader>
+      <Suspense fallback={<Loader />}>
+        <Formats />
+      </Suspense>
+    </>
+  )
+}
 
+async function load() {
+  const user = await requireSection('/directory')
+  const formats = await listFormats()
+  const canManage = isEditor(user.role)
+  const takenColors = formats.map((f) => f.color)
+  const create = canManage && <NewFormat takenColors={takenColors} />
+  return { formats, canManage, takenColors, create }
+}
+
+async function CreateAction() {
+  const { formats, create } = await load()
+  return formats.length > 0 && create
+}
+
+async function Formats() {
+  const { formats, canManage, takenColors, create } = await load()
+
+  return (
+    <>
       {formats.length === 0 ? (
         <EmptyState
           icon={BookOpen}
@@ -118,7 +142,7 @@ export default async function Page() {
                     <span className="text-xs text-ink-muted tnum">
                       Броней: {f.bookingsCount}
                     </span>
-                    {isAdmin && (
+                    {canManage && (
                       <EditFormat
                         format={{
                           id: f.id,

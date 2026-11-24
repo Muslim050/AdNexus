@@ -4,8 +4,6 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Coins,
   Hourglass,
   Pencil,
@@ -25,6 +23,7 @@ import { PaymentsBlock } from '@/components/calendar/PaymentsBlock'
 import { SlotDetails } from '@/components/calendar/SlotDetails'
 import type { CalendarSlot } from '@/components/calendar/types'
 import { FormDrawer } from '@/components/forms/CreateDrawer'
+import { BrandAvatar } from '@/components/ui/BrandAvatar'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Field'
 import { Modal } from '@/components/ui/Modal'
@@ -32,10 +31,13 @@ import { SelectField } from '@/components/ui/SelectField'
 import { BOOKING_STATUS } from '@/lib/bookings'
 import { cn } from '@/lib/cn'
 import { formatSum } from '@/lib/forms'
-import type { Role } from '@/lib/roles'
-import { WEEKDAYS, dayOfMonth, longDay, monthIndex } from '@/lib/week'
+import { isEditor, type Role } from '@/lib/roles'
+import { longDay } from '@/lib/week'
 import type { OrdersFilter } from '@/lib/data/orders'
 import { Kpi } from './Kpi'
+import { Pager } from './Pager'
+import { PeriodTabs } from './PeriodTabs'
+import { shortDay } from './shortDay'
 
 const FILTERS: { id: OrdersFilter; label: string }[] = [
   { id: 'upcoming', label: 'Предстоящие' },
@@ -47,34 +49,6 @@ const FILTERS: { id: OrdersFilter; label: string }[] = [
   { id: 'all', label: 'Все' },
 ]
 
-const MONTHS = [
-  'Янв',
-  'Фев',
-  'Мар',
-  'Апр',
-  'Май',
-  'Июн',
-  'Июл',
-  'Авг',
-  'Сен',
-  'Окт',
-  'Ноя',
-  'Дек',
-]
-const MONTHS_GEN_SHORT = [
-  'янв.',
-  'февр.',
-  'мар.',
-  'апр.',
-  'мая',
-  'июн.',
-  'июл.',
-  'авг.',
-  'сент.',
-  'окт.',
-  'нояб.',
-  'дек.',
-]
 const MONTHS_IN = [
   'январе',
   'феврале',
@@ -104,16 +78,6 @@ const MONTHS_FOR = [
   'декабрь',
 ]
 
-const dow = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return WEEKDAYS[
-    (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
-  ].toLowerCase()
-}
-/** «24 нояб., вт» */
-const shortDay = (iso: string) =>
-  `${dayOfMonth(iso)} ${MONTHS_GEN_SHORT[monthIndex(iso)]}, ${dow(iso)}`
-
 interface Props {
   rows: CalendarSlot[]
   total: number
@@ -130,92 +94,6 @@ interface Props {
   contracts: ContractChoice[]
   role: Role
   currentUserId: string
-}
-
-/** Месяц списка и год со стрелками; «Все» держит год в поле зрения. */
-function PeriodTabs({
-  period,
-  currentMonth,
-  onPick,
-}: {
-  period: string
-  currentMonth: string
-  onPick: (period: string) => void
-}) {
-  const shown = period === 'all' ? currentMonth : period
-  const year = Number(shown.slice(0, 4))
-  const strip = useRef<HTMLDivElement>(null)
-
-  // На телефоне полоса едет вбок — держим выбранный месяц на виду.
-  useEffect(() => {
-    const box = strip.current
-    const on = box?.querySelector<HTMLElement>('[aria-pressed="true"]')
-    if (box && on)
-      box.scrollLeft = on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2
-  }, [period])
-
-  const tab = (on: boolean) =>
-    cn(
-      'h-8 shrink-0 px-3 text-[13px] font-semibold transition-colors focus-ring sm:flex-1 sm:px-1',
-      on
-        ? 'bg-forest text-white'
-        : 'text-ink-soft hover:bg-ink/6 hover:text-ink',
-    )
-
-  return (
-    <div className="mb-5 flex flex-col gap-2 lg:flex-row">
-      <div className="inline-flex w-fit shrink-0 items-center border border-line bg-surface p-1">
-        <button
-          type="button"
-          aria-label="Предыдущий год"
-          onClick={() => onPick(`${year - 1}${shown.slice(4)}`)}
-          className="flex h-8 w-8 items-center justify-center text-ink-soft hover:bg-ink/6 hover:text-ink focus-ring"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <span className="w-12 text-center font-mono text-[13px] font-semibold tnum">
-          {year}
-        </span>
-        <button
-          type="button"
-          aria-label="Следующий год"
-          onClick={() => onPick(`${year + 1}${shown.slice(4)}`)}
-          className="flex h-8 w-8 items-center justify-center text-ink-soft hover:bg-ink/6 hover:text-ink focus-ring"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
-      <div
-        ref={strip}
-        role="group"
-        aria-label="Месяц"
-        className="no-scrollbar flex min-w-0 flex-1 gap-0.5 overflow-x-auto border border-line bg-surface p-1"
-      >
-        <button
-          type="button"
-          aria-pressed={period === 'all'}
-          onClick={() => onPick('all')}
-          className={tab(period === 'all')}
-        >
-          Все
-        </button>
-        {MONTHS.map((label, i) => {
-          const id = `${year}-${String(i + 1).padStart(2, '0')}`
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={period === id}
-              onClick={() => onPick(id)}
-              className={tab(period === id)}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
 }
 
 /**
@@ -258,8 +136,8 @@ export function OrdersView({
   })
   const skipSearch = useRef(false)
 
-  const canBook = role === 'admin' || role === 'advertiser'
-  const formRole = role === 'advertiser' ? 'advertiser' : 'admin'
+  const canBook = role === 'advertiser' || isEditor(role)
+  const formRole = role === 'advertiser' ? 'advertiser' : 'staff'
   const opened = rows.find((r) => r.id === openId) ?? null
   const paying = rows.find((r) => r.id === payingId) ?? null
 
@@ -302,7 +180,6 @@ export function OrdersView({
     go(patch)
   }
 
-  const pages = Math.max(1, Math.ceil(total / pageSize))
   const monthIdx =
     query.period === 'all' ? null : Number(query.period.slice(5)) - 1
   const formatName = formats.find((f) => f.id === query.formatId)?.name
@@ -457,9 +334,10 @@ export function OrdersView({
           <thead>
             <tr>
               {[
+                '№',
                 'Дата',
-                'Формат и время',
                 'Рекламодатель и кампания',
+                'Формат и время',
                 'Менеджер',
                 'Сумма / оплачено',
                 'Остаток',
@@ -469,7 +347,7 @@ export function OrdersView({
                 <th
                   key={h}
                   className={cn(
-                    'eyebrow border-b border-line bg-paper/60 px-4 py-3 text-left font-semibold text-ink-muted',
+                    'eyebrow border-b border-line bg-paper/60 px-3 py-3 text-left font-semibold text-ink-muted',
                     i === 0 && 'pl-5',
                     (h === 'Остаток' || h === 'Договор') && 'text-right',
                     h === 'Договор' && 'pr-5',
@@ -481,7 +359,7 @@ export function OrdersView({
             </tr>
           </thead>
           <tbody>
-            {rows.map((b) => {
+            {rows.map((b, index) => {
               const amount = Number(b.amount)
               const paid = Number(b.paid)
               const pct = amount
@@ -501,15 +379,42 @@ export function OrdersView({
                   tabIndex={0}
                   className="cursor-pointer border-b border-line transition-colors last:border-b-0 hover:bg-indigo-50/40 focus-visible:bg-indigo-50/60 focus-visible:outline-none"
                 >
+                  <td className="whitespace-nowrap py-3 pl-5 pr-2 font-mono text-xs text-ink-muted tnum">
+                    {(page - 1) * pageSize + index + 1}
+                  </td>
                   <td
                     className={cn(
-                      'whitespace-nowrap py-3 pl-5 pr-4 font-semibold tnum',
+                      'whitespace-nowrap px-3 py-3 font-semibold tnum',
                       past ? 'text-ink-muted' : 'text-ink',
                     )}
                   >
                     {shortDay(b.date)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="max-w-[280px] px-3 py-3">
+                    <span className="flex items-center gap-3">
+                      {b.advertiserName ? (
+                        <BrandAvatar
+                          name={b.advertiserName}
+                          logo={b.advertiserLogo}
+                          color={b.advertiserColor}
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className="h-10 w-10 shrink-0 border border-dashed border-ink/20"
+                        />
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-ink">
+                          {b.advertiserName ?? 'Без рекламодателя'}
+                        </span>
+                        <span className="block truncate text-xs text-ink-muted">
+                          {b.campaignName || '—'}
+                        </span>
+                      </span>
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3">
                     <span className="flex items-center gap-2 font-semibold text-ink">
                       <span
                         className="h-2.5 w-2.5 shrink-0"
@@ -521,20 +426,12 @@ export function OrdersView({
                       {b.time}
                     </span>
                   </td>
-                  <td className="max-w-[260px] px-4 py-3">
-                    <span className="block truncate font-semibold text-ink">
-                      {b.advertiserName ?? 'Без рекламодателя'}
-                    </span>
-                    <span className="block truncate text-xs text-ink-muted">
-                      {b.campaignName || '—'}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-ink-soft">
+                  <td className="whitespace-nowrap px-3 py-3 text-ink-soft">
                     {b.managerName ?? (
                       <span className="text-ink-muted">Не назначен</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 tnum">
+                  <td className="whitespace-nowrap px-3 py-3 tnum">
                     {/* Открывает выплаты; остальная строка — карточку брони. */}
                     <button
                       type="button"
@@ -587,14 +484,14 @@ export function OrdersView({
                       )}
                     </button>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tnum">
+                  <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tnum">
                     {amount ? (
                       formatSum(Math.max(0, amount - paid))
                     ) : (
                       <span className="font-normal text-ink-muted">—</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3">
+                  <td className="whitespace-nowrap px-3 py-3">
                     <span className="inline-flex items-center gap-1.5 border border-line px-2 py-1 text-xs font-semibold text-ink">
                       <span
                         className="h-2 w-2"
@@ -603,7 +500,7 @@ export function OrdersView({
                       {BOOKING_STATUS[b.status].label}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap py-3 pl-4 pr-5 text-right font-mono text-xs text-ink-muted">
+                  <td className="whitespace-nowrap py-3 pl-3 pr-5 text-right font-mono text-xs text-ink-muted">
                     {b.contractNumber ? `№ ${b.contractNumber}` : '—'}
                   </td>
                 </tr>
@@ -612,7 +509,7 @@ export function OrdersView({
             {!rows.length && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="bg-hatch py-14 text-center text-ink-muted"
                 >
                   Под эти условия публикаций нет. Сбросьте поиск или выберите
@@ -624,33 +521,12 @@ export function OrdersView({
         </table>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-sm text-ink-muted">
-        <span className="font-mono text-[13px] tnum">
-          {total
-            ? `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)} из ${total}`
-            : '0'}
-        </span>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            aria-label="Предыдущая страница"
-            disabled={page <= 1}
-            onClick={() => go({ page: String(page - 1) })}
-            className="flex h-9 w-9 items-center justify-center border border-line bg-surface hover:border-ink disabled:opacity-40 focus-ring"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            type="button"
-            aria-label="Следующая страница"
-            disabled={page >= pages}
-            onClick={() => go({ page: String(page + 1) })}
-            className="flex h-9 w-9 items-center justify-center border border-line bg-surface hover:border-ink disabled:opacity-40 focus-ring"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
+      <Pager
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPage={(n) => go({ page: String(n) })}
+      />
 
       {canBook && (
         <FormDrawer
@@ -734,7 +610,7 @@ export function OrdersView({
             : undefined
         }
       >
-        {paying && <PaymentsBlock slot={paying} canEdit={role === 'admin'} />}
+        {paying && <PaymentsBlock slot={paying} canEdit={isEditor(role)} />}
       </Modal>
     </div>
   )

@@ -67,19 +67,41 @@ export function EditAdvertiser({
         <Pencil size={14} />
         Изменить
       </Button>
-      <FormDrawer
+      <EditAdvertiserDrawer
+        advertiser={advertiser}
         open={open}
         onClose={() => setOpen(false)}
         round={round}
-        title="Изменить рекламодателя"
-        description={advertiser.name}
-        icon={Pencil}
-        action={updateAdvertiser}
-        submitLabel="Сохранить"
-      >
-        {(state) => <AdvertiserFields state={state} initial={advertiser} />}
-      </FormDrawer>
+      />
     </>
+  )
+}
+
+/** Панель правки без кнопки — открытием управляет родитель. */
+export function EditAdvertiserDrawer({
+  advertiser,
+  open,
+  onClose,
+  round,
+}: {
+  advertiser: AdvertiserInitial
+  open: boolean
+  onClose: () => void
+  round: number
+}) {
+  return (
+    <FormDrawer
+      open={open}
+      onClose={onClose}
+      round={round}
+      title="Изменить рекламодателя"
+      description={advertiser.name}
+      icon={Pencil}
+      action={updateAdvertiser}
+      submitLabel="Сохранить"
+    >
+      {(state) => <AdvertiserFields state={state} initial={advertiser} />}
+    </FormDrawer>
   )
 }
 

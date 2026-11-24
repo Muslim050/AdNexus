@@ -5,7 +5,9 @@ import {
   ALLOWED_CONTENT_TYPES,
   FILE_FOLDERS,
   MAX_FILE_BYTES,
+  MAX_SCREENSHOT_BYTES,
 } from '@/lib/files'
+import { isEditor } from '@/lib/roles'
 
 /**
  * Токен для загрузки файла из браузера прямо в приватный Blob — так нет
@@ -26,9 +28,9 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async (pathname) => {
         const user = await getCurrentUser()
-        // admin — в любые папки сущностей; рекламодатель — только материалы брони.
+        // admin и manager — в любые папки сущностей; рекламодатель — только материалы брони.
         const folders: readonly string[] =
-          user?.role === 'admin'
+          user && isEditor(user.role)
             ? FILE_FOLDERS
             : user?.role === 'advertiser' && user.advertiserId
               ? ['bookings']
@@ -38,10 +40,16 @@ export async function POST(request: Request) {
         if (!inFolder || pathname.includes('..')) {
           throw new Error('Недопустимый путь файла')
         }
+        // Логотипы и скриншоты — только картинки.
         const logo = pathname.startsWith('logos/')
+        const image = logo || pathname.startsWith('facts/')
         return {
-          allowedContentTypes: logo ? ['image/*'] : ALLOWED_CONTENT_TYPES,
-          maximumSizeInBytes: logo ? 5 * 1024 * 1024 : MAX_FILE_BYTES,
+          allowedContentTypes: image ? ['image/*'] : ALLOWED_CONTENT_TYPES,
+          maximumSizeInBytes: logo
+            ? 5 * 1024 * 1024
+            : image
+              ? MAX_SCREENSHOT_BYTES
+              : MAX_FILE_BYTES,
           // Одинаковые имена файлов не перезаписывают друг друга.
           addRandomSuffix: true,
         }

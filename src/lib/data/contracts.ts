@@ -1,24 +1,32 @@
 import 'server-only'
+import { cache } from 'react'
 import { asc, desc, eq } from 'drizzle-orm'
 import { getDb } from '@/db'
 import { advertisers, contracts } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
+import { ROLES, STAFF } from '@/lib/roles'
 
-export async function listContracts() {
-  await requireRole(['admin', 'viewer'])
+/** Договоры площадки. Один запрос на рендер. */
+export const listContracts = cache(async () => {
+  await requireRole(STAFF)
   return getDb()
-    .select({ contract: contracts, advertiserName: advertisers.name })
+    .select({
+      contract: contracts,
+      advertiserName: advertisers.name,
+      advertiserLogo: advertisers.logo,
+      advertiserColor: advertisers.color,
+    })
     .from(contracts)
     .innerJoin(advertisers, eq(advertisers.id, contracts.advertiserId))
     .orderBy(desc(contracts.createdAt))
-}
+})
 
 /**
  * Договоры для форм заказа и брони: из договора подставляются номер,
  * кампания, скидка, срок и файл. Рекламодателю — только договоры его бренда.
  */
 export async function contractOptions() {
-  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+  const user = await requireRole(ROLES)
   if (user.role === 'advertiser' && !user.advertiserId) return []
   const query = getDb()
     .select({
@@ -38,5 +46,7 @@ export async function contractOptions() {
     ? query.where(eq(contracts.advertiserId, user.advertiserId))
     : query
 }
+
+export type ContractRow = Awaited<ReturnType<typeof listContracts>>[number]
 
 export type ContractOption = Awaited<ReturnType<typeof contractOptions>>[number]

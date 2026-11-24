@@ -18,6 +18,12 @@ function snapshot() {
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`
 }
 
+/** Дата и время по Ташкенту прямо сейчас — для обработчиков событий. */
+export function nowTashkent(): { date: string; time: string } {
+  const [date, time] = snapshot().split(' ')
+  return { date, time }
+}
+
 const subscribe = (onChange: () => void) => {
   const id = setInterval(onChange, 20_000)
   return () => clearInterval(id)

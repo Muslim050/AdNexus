@@ -17,6 +17,7 @@ import { requireRole } from '@/lib/auth'
 import { BOOKING_STATUSES, type BookingStatus } from '@/lib/bookings'
 import { todayTashkent } from '@/lib/week'
 import { bookingsQuery, withPayments } from './bookings'
+import { ROLES } from '@/lib/roles'
 
 /** Фильтр списка: статус, «Предстоящие» (с сегодняшнего дня) или «Все». */
 export type OrdersFilter = BookingStatus | 'upcoming' | 'all'
@@ -40,7 +41,7 @@ const paidSql = sql<string>`coalesce((select sum(p.amount) from booking_payments
  * статусам и итоги за месяц. Рекламодателю — только его бренд.
  */
 export async function listOrders(query: OrdersQuery) {
-  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+  const user = await requireRole(ROLES)
   const today = todayTashkent()
 
   const scope: SQL[] = []

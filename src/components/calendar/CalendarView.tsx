@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
   PanelRight,
@@ -14,7 +15,8 @@ import { createBooking, updateBooking } from '@/app/actions/bookings'
 import { FormDrawer } from '@/components/forms/CreateDrawer'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
-import type { Role } from '@/lib/roles'
+import { isEditor, type Role } from '@/lib/roles'
+import { nowTashkent } from '@/lib/useNow'
 import { useStoredFlag } from '@/lib/useStoredFlag'
 import { addDays, humanDate, longDay, weekDays, weekTitle } from '@/lib/week'
 import {
@@ -25,14 +27,12 @@ import {
   type ManagerChoice,
 } from './BookingFields'
 import { FormatLegend, StatusLegend } from './FormatLegend'
+import { GroupedDays } from './GroupedDays'
 import { MiniMonth } from './MiniMonth'
 import { SlotDetails } from './SlotDetails'
 import { TimeGrid } from './TimeGrid'
-import {
-  calendarHref,
-  type CalendarSlot,
-  type CalendarView as View,
-} from './types'
+import type { CalendarSlot, CalendarView as View, ListPeriod } from './types'
+import { useCalendarHref } from './useCalendarHref'
 import { UpcomingPanel } from './UpcomingPanel'
 
 interface Props {
@@ -42,8 +42,12 @@ interface Props {
   weekStart: string
   today: string
   slots: CalendarSlot[]
-  /** Ближайшие публикации с сегодняшнего дня — панель справа. */
-  upcoming: CalendarSlot[]
+  /** Список справа: его период и публикации. */
+  period: ListPeriod
+  listed: CalendarSlot[]
+  /** Есть ли что догрузить в ленту до и после. */
+  moreBefore: boolean
+  moreAfter: boolean
   formats: FormatChoice[]
   managers: ManagerChoice[]
   advertisers: AdvertiserChoice[]
@@ -58,7 +62,10 @@ export function CalendarView({
   weekStart,
   today,
   slots,
-  upcoming,
+  period,
+  listed,
+  moreBefore,
+  moreAfter,
   formats,
   managers,
   advertisers,
@@ -67,22 +74,25 @@ export function CalendarView({
   currentUserId,
 }: Props) {
   // Бронирует admin и рекламодатель; viewer только смотрит.
-  const canBook = role === 'admin' || role === 'advertiser'
-  const formRole = role === 'advertiser' ? 'advertiser' : 'admin'
+  const canBook = role === 'advertiser' || isEditor(role)
+  const formRole = role === 'advertiser' ? 'advertiser' : 'staff'
   const days = view === 'day' ? [anchor] : weekDays(weekStart)
   const step = view === 'day' ? 1 : 7
+  const calendarHref = useCalendarHref()
   const [hidden, setHidden] = useState<string[]>([])
   const [create, setCreate] = useState({
     open: false,
     date: today,
     time: '10:00',
+    formatId: '',
     round: 0,
   })
   // Открытую бронь берём из свежих данных по id: после выплаты или смены
   // статуса сервер присылает обновлённые слоты, и карточка обновляется сама.
   const [openedId, setOpenedId] = useState<string | null>(null)
-  const opened = [...slots, ...upcoming].find((s) => s.id === openedId) ?? null
+  const opened = [...slots, ...listed].find((s) => s.id === openedId) ?? null
   const [panelHidden, setPanelHidden] = useStoredFlag('calendar-panel-hidden')
+  const [grouped, setGrouped] = useStoredFlag('calendar-grouped')
   const [editing, setEditing] = useState<{
     open: boolean
     slot: CalendarSlot | null
@@ -100,10 +110,20 @@ export function CalendarView({
     role === 'advertiser' && contracts.length === 0
       ? 'Для брони нужен договор — обратитесь к менеджеру'
       : 'Сначала добавьте формат в «Справочнике»'
-  const book = (date: string, time = '10:00') =>
-    setCreate((c) => ({ open: true, date, time, round: c.round + 1 }))
-  // Кнопка «Забронировать»: сегодня, если оно на экране, иначе первый день.
-  const bookDefault = () => book(days.includes(today) ? today : days[0])
+  const book = (date: string, time: string, formatId = '') =>
+    setCreate((c) => ({
+      open: true,
+      date,
+      time,
+      formatId,
+      round: c.round + 1,
+    }))
+  // Кнопка «Забронировать»: текущее время; день — сегодня, если оно на
+  // экране, иначе первый из показанных.
+  const bookDefault = () => {
+    const now = nowTashkent()
+    book(days.includes(now.date) ? now.date : days[0], now.time)
+  }
 
   const visible = slots.filter((s) => !hidden.includes(s.formatId))
   const toggle = (id: string) =>
@@ -112,11 +132,12 @@ export function CalendarView({
   return (
     <div
       className={cn(
-        'grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]',
-        !panelHidden && 'min-[82.5rem]:grid-cols-[220px_minmax(0,1fr)_264px]',
+        'grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] wide:min-h-0 wide:flex-1 wide:grid-rows-[minmax(0,1fr)]',
+        !panelHidden && 'wide:grid-cols-[220px_minmax(0,1fr)_264px]',
       )}
     >
-      <aside className="hidden space-y-7 lg:block">
+      {/* -m-1 p-1 — чтобы прокрутка не обрезала рамку фокуса. */}
+      <aside className="hidden space-y-7 lg:block wide:-m-1 wide:overflow-y-auto wide:p-1">
         {canBook && (
           <Button
             onClick={bookDefault}
@@ -140,7 +161,7 @@ export function CalendarView({
         <StatusLegend />
       </aside>
 
-      <section className="min-w-0 border border-line bg-surface">
+      <section className="min-w-0 border border-line bg-surface wide:flex wide:min-h-0 wide:flex-col">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-3 sm:px-4">
           <Link
             href={calendarHref(view)}
@@ -172,10 +193,33 @@ export function CalendarView({
             {view === 'day' ? humanDate(anchor) : weekTitle(weekStart)}
           </h2>
 
-          <div className="ml-auto flex items-center gap-2">
-            <span className="eyebrow hidden text-ink-muted xl:block">
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <span className="eyebrow hidden text-ink-muted 2xl:block">
               {visible.length} {plural(visible.length)}
             </span>
+            <label
+              title="Слоты дня — по форматам, без шкалы времени"
+              className="flex h-9 cursor-pointer items-center gap-2 px-1.5 text-[13px] font-semibold text-ink-soft transition-colors hover:text-ink"
+            >
+              <input
+                type="checkbox"
+                checked={grouped}
+                onChange={(e) => setGrouped(e.target.checked)}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'flex h-[18px] w-[18px] shrink-0 items-center justify-center border-2 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500 peer-focus-visible:ring-offset-1',
+                  grouped
+                    ? 'border-indigo-500 bg-indigo-500 text-white'
+                    : 'border-ink/30',
+                )}
+              >
+                {grouped && <Check size={13} strokeWidth={3} />}
+              </span>
+              Группировать
+            </label>
             {/* Режим: неделя или день. */}
             <div
               className="flex border border-ink/20"
@@ -205,7 +249,7 @@ export function CalendarView({
                 onClick={() => setPanelHidden(false)}
               >
                 <PanelRight size={15} />
-                Ближайшие
+                Список
               </Button>
             )}
             {canBook && (
@@ -222,14 +266,29 @@ export function CalendarView({
           </div>
         </div>
 
-        <TimeGrid
-          days={days}
-          today={today}
-          slots={visible}
-          canCreate={canCreate}
-          onBook={book}
-          onOpen={(s) => setOpenedId(s.id)}
-        />
+        {grouped ? (
+          <GroupedDays
+            days={days}
+            today={today}
+            slots={visible}
+            formats={formats}
+            ownBrand={role === 'advertiser'}
+            canCreate={canCreate}
+            onBook={(date, formatId) =>
+              book(date, nowTashkent().time, formatId)
+            }
+            onOpen={(s) => setOpenedId(s.id)}
+          />
+        ) : (
+          <TimeGrid
+            days={days}
+            today={today}
+            slots={visible}
+            canCreate={canCreate}
+            onBook={book}
+            onOpen={(s) => setOpenedId(s.id)}
+          />
+        )}
 
         {formats.length === 0 && (
           <p className="border-t border-line bg-hatch px-4 py-3 text-sm text-ink-muted">
@@ -246,11 +305,13 @@ export function CalendarView({
       </section>
 
       {!panelHidden && (
-        <div className="relative min-w-0 lg:col-start-2 min-[82.5rem]:col-start-auto">
+        <div className="relative min-w-0 lg:col-start-2 wide:col-start-auto">
           <UpcomingPanel
-            view={view}
             today={today}
-            slots={upcoming.filter((s) => !hidden.includes(s.formatId))}
+            period={period}
+            moreBefore={moreBefore}
+            moreAfter={moreAfter}
+            slots={listed.filter((s) => !hidden.includes(s.formatId))}
             onOpen={(s) => setOpenedId(s.id)}
             onHide={() => setPanelHidden(true)}
             onBook={canBook ? bookDefault : undefined}
@@ -283,6 +344,7 @@ export function CalendarView({
               state={state}
               date={create.date}
               time={create.time}
+              presetFormatId={create.formatId}
               formats={formats}
               managers={managers}
               advertisers={advertisers}

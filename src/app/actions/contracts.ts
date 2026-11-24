@@ -13,6 +13,7 @@ import {
   text,
   type FormState,
 } from '@/lib/forms'
+import { EDITORS } from '@/lib/roles'
 
 const STATUSES: ContractStatus[] = ['active', 'completed', 'terminated']
 
@@ -20,7 +21,7 @@ export async function createContract(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
 
   const advertiserId = text(fd, 'advertiserId', 36)
   const number = text(fd, 'number', 100)

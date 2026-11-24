@@ -1,14 +1,16 @@
 import 'server-only'
+import { cache } from 'react'
 import { asc, count, eq } from 'drizzle-orm'
 import { getDb } from '@/db'
 import { bookings, placementFormats } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
+import { ROLES, STAFF } from '@/lib/roles'
 
 export type PlacementFormat = typeof placementFormats.$inferSelect
 
-/** Форматы со счётчиком броней — для справочника. */
-export async function listFormats() {
-  await requireRole(['admin', 'viewer'])
+/** Форматы со счётчиком броней — для справочника. Один запрос на рендер. */
+export const listFormats = cache(async () => {
+  await requireRole(STAFF)
   const rows = await getDb()
     .select({ format: placementFormats, bookings: count(bookings.id) })
     .from(placementFormats)
@@ -16,11 +18,11 @@ export async function listFormats() {
     .groupBy(placementFormats.id)
     .orderBy(asc(placementFormats.position), asc(placementFormats.name))
   return rows.map((r) => ({ ...r.format, bookingsCount: r.bookings }))
-}
+})
 
 /** Форматы для календаря и формы брони. */
 export async function formatOptions() {
-  await requireRole(['admin', 'viewer', 'advertiser'])
+  await requireRole(ROLES)
   return getDb()
     .select({
       id: placementFormats.id,

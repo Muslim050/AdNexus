@@ -1,8 +1,10 @@
 import 'server-only'
+import { cache } from 'react'
 import { asc, count, eq, sql } from 'drizzle-orm'
 import { getDb } from '@/db'
 import { advertisers, contracts, users } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
+import { ROLES, STAFF } from '@/lib/roles'
 
 export interface AdvertiserAccount {
   id: string
@@ -20,9 +22,9 @@ export type AdvertiserRow = typeof advertisers.$inferSelect & {
   accounts: AdvertiserAccount[]
 }
 
-/** Рекламодатели для площадки: admin и viewer. */
-export async function listAdvertisers(): Promise<AdvertiserRow[]> {
-  await requireRole(['admin', 'viewer'])
+/** Рекламодатели для площадки: admin и viewer. Один запрос на рендер. */
+export const listAdvertisers = cache(async (): Promise<AdvertiserRow[]> => {
+  await requireRole(STAFF)
   const db = getDb()
   const [rows, accounts] = await Promise.all([
     db
@@ -61,11 +63,11 @@ export async function listAdvertisers(): Promise<AdvertiserRow[]> {
         isActive,
       })),
   }))
-}
+})
 
 /** Короткий список для выбора в формах. Рекламодателю — только его бренд. */
-export async function advertiserOptions() {
-  const user = await requireRole(['admin', 'viewer', 'advertiser'])
+export const advertiserOptions = cache(async () => {
+  const user = await requireRole(ROLES)
   const query = getDb()
     .select({
       id: advertisers.id,
@@ -79,4 +81,4 @@ export async function advertiserOptions() {
   if (user.role !== 'advertiser') return query
   if (!user.advertiserId) return []
   return query.where(eq(advertisers.id, user.advertiserId))
-}
+})

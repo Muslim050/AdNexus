@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { calendarHref, type CalendarView } from './types'
+import type { CalendarView } from './types'
+import { useCalendarHref } from './useCalendarHref'
 import {
   MONTHS,
   WEEKDAYS_MINI,
@@ -29,6 +30,7 @@ export function MiniMonth({
   to: string
   today: string
 }) {
+  const calendarHref = useCalendarHref()
   const [cursor, setCursor] = useState(() => ({
     year: yearOf(anchor),
     month: monthIndex(anchor),

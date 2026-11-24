@@ -2,20 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Bell, ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { useSessionUser } from '@/components/session/SessionProvider'
-import { HOME } from '@/lib/nav'
+import { HOME, profileNavFor } from '@/lib/nav'
 import { logout } from '@/app/actions/auth'
 import { cn } from '@/lib/cn'
+import { ROLE_INFO } from '@/lib/roles'
 import { DesktopNav } from './Navigation'
-
-const ROLE_LABEL = {
-  admin: 'Администратор',
-  viewer: 'Наблюдатель',
-  advertiser: 'Рекламодатель',
-} as const
 
 /**
  * Тёмная шапка-«вывеска»: логотип, разделы в строку, профиль. Держится
@@ -29,6 +25,7 @@ export function Topbar({
   mobileNavOpen: boolean
 }) {
   const user = useSessionUser()
+  const pathname = usePathname()
   const [menu, setMenu] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -41,7 +38,7 @@ export function Topbar({
   }, [])
 
   const title = user?.name ?? ''
-  const subtitle = user ? `${ROLE_LABEL[user.role]} · ${user.login}` : ''
+  const subtitle = user ? `${ROLE_INFO[user.role].label} · ${user.login}` : ''
 
   return (
     <header className="sticky top-0 z-30 border-b border-forest-line bg-forest text-white">
@@ -83,7 +80,7 @@ export function Topbar({
               )}
             >
               <Avatar name={title} color="#0E7745" size="sm" />
-              <span className="hidden min-w-0 max-w-[180px] text-left 2xl:block">
+              <span className="hidden min-w-0 max-w-[140px] text-left 2xl:block">
                 <span className="block truncate text-[12.5px] font-semibold leading-tight">
                   {title}
                 </span>
@@ -110,6 +107,24 @@ export function Topbar({
                   </p>
                   <p className="truncate text-xs text-ink-muted">{subtitle}</p>
                 </div>
+                {profileNavFor(user?.role).map((it) => {
+                  const active = pathname.startsWith(it.href)
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      onClick={() => setMenu(false)}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'flex items-center gap-2 border-t border-line px-4 py-3 text-sm font-semibold transition-colors hover:bg-ink/4 focus-ring',
+                        active ? 'text-indigo-600' : 'text-ink',
+                      )}
+                    >
+                      <it.icon size={15} aria-hidden="true" />
+                      {it.label}
+                    </Link>
+                  )
+                })}
                 <form action={logout}>
                   <button
                     type="submit"

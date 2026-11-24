@@ -15,6 +15,7 @@ import { formatPeriod } from '@/lib/dates'
 import type { AttachedFile } from '@/lib/files'
 import { formatPercent, formatSum, type FormState } from '@/lib/forms'
 import { suggestedAmount } from '@/lib/pricing'
+import { ROLE_INFO, type Role } from '@/lib/roles'
 
 export interface FormatChoice {
   id: string
@@ -28,7 +29,7 @@ export interface FormatChoice {
 export interface ManagerChoice {
   id: string
   name: string
-  role: string
+  role: Role
 }
 
 export interface AdvertiserChoice {
@@ -65,13 +66,15 @@ export interface BookingInitial {
 }
 
 interface Props {
-  /** admin выбирает статус, менеджера и бренд; рекламодатель — только своё. */
-  role: 'admin' | 'advertiser'
+  /** Сотрудник выбирает статус, менеджера и бренд; рекламодатель — только своё. */
+  role: 'staff' | 'advertiser'
   /** Правка существующей брони — поля заполнены её значениями. */
   initial?: BookingInitial
   state: FormState
   date: string
   time: string
+  /** Формат новой брони, если её начали из его группы. */
+  presetFormatId?: string
   formats: FormatChoice[]
   managers: ManagerChoice[]
   advertisers: AdvertiserChoice[]
@@ -89,6 +92,7 @@ export function BookingFields({
   state,
   date,
   time,
+  presetFormatId = '',
   formats,
   managers,
   advertisers,
@@ -112,7 +116,7 @@ export function BookingFields({
   const [campaignName, setCampaignName] = useState(
     initial?.campaignName ?? soleContract?.campaignName ?? '',
   )
-  const [formatId, setFormatId] = useState(initial?.formatId ?? '')
+  const [formatId, setFormatId] = useState(initial?.formatId ?? presetFormatId)
   // Сумму подставляем расчётом, пока её не ввели руками.
   const [amount, setAmount] = useState(
     initial && Number(initial.amount) ? String(Number(initial.amount)) : '',
@@ -208,7 +212,7 @@ export function BookingFields({
               options={managers.map((m) => ({
                 value: m.id,
                 label: m.name,
-                hint: m.role === 'admin' ? 'Администратор' : 'Сотрудник',
+                hint: ROLE_INFO[m.role].label,
               }))}
             />
           </Field>

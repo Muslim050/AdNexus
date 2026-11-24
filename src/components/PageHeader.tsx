@@ -1,13 +1,8 @@
-'use client'
-
 import type { ReactNode } from 'react'
-import { usePathname } from 'next/navigation'
-import { sectionNo } from '@/lib/nav'
-import { useNavItems } from '@/components/layout/Navigation'
 
 /**
- * Заголовок раздела в духе указателя: номер раздела моноширинным
- * шрифтом, крупное название и линия во всю ширину с изумрудным отрезком.
+ * Заголовок раздела: крупное название и линия во всю ширину с изумрудным
+ * отрезком. Номер раздела показывает шапка — здесь его не повторяем.
  */
 export function PageHeader({
   title,
@@ -18,22 +13,10 @@ export function PageHeader({
   subtitle?: ReactNode
   children?: ReactNode
 }) {
-  const items = useNavItems()
-  const pathname = usePathname()
-  const index = items.findIndex((it) => pathname.startsWith(it.href))
-  const section = index >= 0 ? items[index] : null
-
   return (
-    <div className="mb-8">
+    <div className="mb-8 shrink-0">
       <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {section && (
-            <p className="eyebrow mb-2.5 flex items-center gap-2 text-indigo-600">
-              <span>{sectionNo(index)}</span>
-              <span className="h-px w-6 bg-indigo-500/50" />
-              <span className="text-ink-muted">{section.label}</span>
-            </p>
-          )}
           {title && (
             <h1 className="font-display text-display-md font-bold text-ink sm:text-display-lg">
               {title}

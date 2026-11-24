@@ -1,13 +1,13 @@
 import { get } from '@vercel/blob'
 import { and, eq, sql } from 'drizzle-orm'
 import { getDb } from '@/db'
-import { bookings, contracts } from '@/db/schema'
+import { bookingFacts, bookings, contracts } from '@/db/schema'
 import { getCurrentUser } from '@/lib/auth'
 import { FILE_FOLDERS, isShowcase, opensInline } from '@/lib/files'
 
 /**
  * Отдаёт файл из приватного Blob вошедшему пользователю. Сотрудникам — любой,
- * рекламодателю — только файлы его договоров и броней.
+ * рекламодателю — только файлы его договоров, броней и их стыковки.
  *
  *   /api/files?path=contracts/scan-abc.pdf&name=Договор.pdf[&download=1]
  */
@@ -99,5 +99,17 @@ async function ownsFile(advertiserId: string | null, path: string) {
       ),
     )
     .limit(1)
-  return Boolean(booking)
+  if (booking) return true
+  const [fact] = await db
+    .select({ id: bookingFacts.bookingId })
+    .from(bookingFacts)
+    .innerJoin(bookings, eq(bookings.id, bookingFacts.bookingId))
+    .where(
+      and(
+        eq(bookings.advertiserId, advertiserId),
+        sql`${bookingFacts.screenshot}->>'pathname' = ${path}`,
+      ),
+    )
+    .limit(1)
+  return Boolean(fact)
 }

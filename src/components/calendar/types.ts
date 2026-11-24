@@ -1,4 +1,5 @@
 import type { BookingStatus } from '@/lib/bookings'
+import type { BookingFact } from '@/lib/facts'
 import type { AttachedFile } from '@/lib/files'
 
 export interface CalendarSlot {
@@ -24,6 +25,11 @@ export interface CalendarSlot {
   advertiserId: string | null
   contractId: string | null
   advertiserName: string | null
+  advertiserLogo: AttachedFile | null
+  advertiserColor: string | null
+  /** Показы по плану — из формата. */
+  planImpressions: number
+  fact: BookingFact | null
   contractNumber: string | null
   contractDiscount: string | null
   contractStart: string | null
@@ -50,10 +56,32 @@ export const slotLabel = (s: CalendarSlot) =>
         .filter(Boolean)
         .join(' | ')
 
-export const calendarHref = (view: CalendarView, date?: string) => {
+/** Список справа: день, неделя или все публикации лентой. */
+export type ListMode = 'day' | 'week' | 'all'
+export interface ListPeriod {
+  mode: ListMode
+  /** Первый день дня или недели; у ленты — сегодня. */
+  from: string
+  /** Сколько порций ленты загружено до сегодня и после. */
+  up: number
+  down: number
+}
+
+/** Параметры адреса, которыми живёт список: сетка их не сбрасывает. */
+export const LIST_PARAMS = ['list', 'from', 'up', 'down'] as const
+
+/** Дальше лента не грузится: за остальным — в «Заказы». */
+export const FEED_MAX_PAGES = 20
+
+export const calendarHref = (
+  view: CalendarView,
+  date?: string,
+  list?: Iterable<[string, string]>,
+) => {
   const params = new URLSearchParams()
   if (view === 'day') params.set('view', 'day')
   if (date) params.set('d', date)
+  for (const [key, value] of list ?? []) params.set(key, value)
   const qs = params.toString()
   return qs ? `/calendar?${qs}` : '/calendar'
 }

@@ -1,15 +1,14 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { BOOKING_STATUS } from '@/lib/bookings'
-import { slotLook } from './slotLook'
-import { StatusPill } from './StatusPill'
+import { DayHead } from './DayHead'
+import { NowTag } from './NowTag'
+import { SlotChip } from './SlotChip'
 import { useNow } from '@/lib/useNow'
-import { WEEKDAYS, dayOfMonth, longDay } from '@/lib/week'
-import { calendarHref, slotLabel, type CalendarSlot } from './types'
+import { dayOfWeek, longDay } from '@/lib/week'
+import type { CalendarSlot } from './types'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -25,13 +24,11 @@ const minutesOf = (time: string) => {
 }
 const rowOf = (time: string) => Math.floor(minutesOf(time) / 30)
 
+/** На столько пикселей от красной полосы курсор ещё считается наведённым. */
+const NOW_REACH = 6
+
 /** Без брони и без «сейчас» на экране — с 08:00, начала рабочего дня. */
 const DEFAULT_ROW = 16
-
-const dowOf = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
-}
 
 interface Props {
   days: string[]
@@ -59,6 +56,17 @@ export function TimeGrid({
   const scrollRef = useRef<HTMLDivElement>(null)
   const nowRow = now ? rowOf(now.time) : null
   const showsToday = days.includes(today)
+  // Доля строки, на которой стоит красная полоса.
+  const nowShare = now ? (minutesOf(now.time) % 30) / 30 : 0
+  const [nowHover, setNowHover] = useState(false)
+
+  // Наведение ловит ячейка, а не сама полоса: полоса лежит поверх слотов и
+  // не должна перехватывать клики по ним.
+  const trackNow = (e: PointerEvent<HTMLElement>) => {
+    const box = e.currentTarget.getBoundingClientRect()
+    const y = box.top + box.height * nowShare
+    setNowHover(Math.abs(e.clientY - y) <= NOW_REACH)
+  }
 
   // Ячейки по ключу «дата|строка».
   const cells = new Map<string, CalendarSlot[]>()
@@ -88,7 +96,7 @@ export function TimeGrid({
   return (
     <div
       ref={scrollRef}
-      className="relative h-[calc(100vh-300px)] min-h-[460px] overflow-auto"
+      className="relative h-[calc(100vh-300px)] min-h-[460px] overflow-auto wide:h-auto wide:min-h-0 wide:flex-1"
     >
       <div className={cn(days.length > 1 && 'min-w-[760px]')}>
         {/* Шапка с днями — прилипает при прокрутке. */}
@@ -100,36 +108,9 @@ export function TimeGrid({
           <div className="sticky left-0 z-10 flex items-end justify-end bg-surface pb-2 pr-2 font-mono text-[10px] text-ink-muted">
             GMT+5
           </div>
-          {days.map((day) => {
-            const isToday = day === today
-            return (
-              <Link
-                key={day}
-                href={calendarHref('day', day)}
-                title="Открыть день"
-                className="group flex flex-col items-center gap-1 border-l border-line py-2.5 focus-ring"
-              >
-                <span
-                  className={cn(
-                    'font-mono text-[10.5px] font-semibold tracking-wider',
-                    isToday ? 'text-indigo-600' : 'text-ink-muted',
-                  )}
-                >
-                  {WEEKDAYS[dowOf(day)]}
-                </span>
-                <span
-                  className={cn(
-                    'flex h-10 w-10 items-center justify-center font-display text-[22px] font-semibold tnum transition-colors',
-                    isToday
-                      ? 'bg-indigo-500 text-white'
-                      : 'text-ink group-hover:bg-ink/6',
-                  )}
-                >
-                  {dayOfMonth(day)}
-                </span>
-              </Link>
-            )
-          })}
+          {days.map((day) => (
+            <DayHead key={day} day={day} today={today} />
+          ))}
         </div>
 
         {ROWS.map((time, r) => {
@@ -157,11 +138,15 @@ export function TimeGrid({
 
               {days.map((day) => {
                 const cellSlots = cells.get(`${day}|${r}`) ?? []
-                const weekend = dowOf(day) >= 5
+                const weekend = dayOfWeek(day) >= 5
                 const nowHere = now && now.date === day && nowRow === r
                 return (
                   <div
                     key={day}
+                    onPointerMove={nowHere ? trackNow : undefined}
+                    onPointerLeave={
+                      nowHere ? () => setNowHover(false) : undefined
+                    }
                     className={cn(
                       'relative flex min-h-11 flex-col gap-[3px] border-l border-line p-[3px]',
                       // Часовые линии плотнее получасовых.
@@ -185,44 +170,22 @@ export function TimeGrid({
                       </button>
                     )}
 
-                    {cellSlots.map((s) => {
-                      const look = slotLook(s.color, s.masked)
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => !s.masked && onOpen(s)}
-                          title={
-                            s.masked
-                              ? 'Слот занят другим рекламодателем'
-                              : `${slotLabel(s)} · ${BOOKING_STATUS[s.status].label}`
-                          }
-                          className={cn(
-                            '@container relative z-10 flex w-full items-center gap-1.5 rounded-sm py-[3px] pl-1.5 pr-[3px] text-left text-[12px] font-semibold leading-[1.35] focus-ring',
-                            s.masked
-                              ? 'cursor-default'
-                              : 'transition-[filter] hover:brightness-95',
-                            look.className,
-                          )}
-                          style={look.style}
-                        >
-                          <span className="min-w-0 flex-1 truncate">
-                            {slotLabel(s)}
-                          </span>
-                          {!s.masked && <StatusPill status={s.status} />}
-                        </button>
-                      )
-                    })}
+                    {cellSlots.map((s) => (
+                      <SlotChip key={s.id} slot={s} onOpen={onOpen} />
+                    ))}
 
                     {nowHere && (
                       <div
                         aria-hidden="true"
                         className="pointer-events-none absolute -left-px right-0 z-20 h-[2px] bg-danger"
-                        style={{
-                          top: `${((minutesOf(now.time) % 30) / 30) * 100}%`,
-                        }}
+                        style={{ top: `${nowShare * 100}%` }}
                       >
-                        <span className="absolute -left-[5px] -top-[4px] h-[10px] w-[10px] bg-danger" />
+                        {/* Метка выступает за ячейку — ловит наведение сама. */}
+                        <span
+                          onPointerEnter={() => setNowHover(true)}
+                          className="pointer-events-auto absolute -left-[5px] -top-[4px] h-[10px] w-[10px] bg-danger"
+                        />
+                        <NowTag time={now.time} shown={nowHover} />
                       </div>
                     )}
                   </div>

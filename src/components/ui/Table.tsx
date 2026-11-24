@@ -8,7 +8,8 @@ export function Table({
   ...props
 }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto border border-line bg-surface">
+    // relative — иначе sr-only подписи в ячейках растягивают всю страницу.
+    <div className="relative overflow-x-auto border border-line bg-surface">
       <table
         className={cn(
           'w-full min-w-[640px] border-collapse text-sm',

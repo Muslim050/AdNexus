@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import type { AdvertiserStatus } from '../lib/advertisers'
 import type { BookingStatus } from '../lib/bookings'
+import type { FactOutcome } from '../lib/facts'
 import type { AttachedFile } from '../lib/files'
 import type { Role } from '../lib/roles'
 
@@ -253,3 +254,28 @@ export const bookingPayments = pgTable(
   },
   (t) => [index('booking_payments_booking_idx').on(t.bookingId, t.paidAt)],
 )
+
+/**
+ * Факт публикации — «Стыковка» плана и факта, один на бронь. Плановые показы
+ * запоминаем при внесении: правка формата не должна менять прошлые итоги.
+ */
+export const bookingFacts = pgTable('booking_facts', {
+  bookingId: uuid('booking_id')
+    .primaryKey()
+    .references(() => bookings.id, { onDelete: 'cascade' }),
+  outcome: text('outcome').$type<FactOutcome>().notNull(),
+  /** Когда вышло; у невышедшей — пусто. */
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  link: text('link').notNull().default(''),
+  /** Показы по факту; пусто — ещё не внесены. */
+  impressions: bigint('impressions', { mode: 'number' }),
+  planImpressions: bigint('plan_impressions', { mode: 'number' })
+    .notNull()
+    .default(0),
+  /** Скриншот в приватном Blob. */
+  screenshot: jsonb('screenshot').$type<AttachedFile>(),
+  comment: text('comment').notNull().default(''),
+  createdBy: text('created_by').notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})

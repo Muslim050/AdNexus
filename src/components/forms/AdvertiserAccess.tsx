@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Eye, EyeOff, RefreshCw, UserCog } from 'lucide-react'
 import { createAdvertiserUser, updateAdvertiserUser } from '@/app/actions/users'
 import { Field, Input } from '@/components/ui/Field'
@@ -117,12 +117,21 @@ function generatePassword() {
   return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')
 }
 
-function AccountFields({
+export function AccountFields({
   state,
   initial,
+  receiver = 'рекламодателю',
+  lockStatus,
+  children,
 }: {
   state: FormState
   initial?: AccountInitial
+  /** Кому передать пароль — в подсказке. */
+  receiver?: string
+  /** Свою запись не отключить — поля статуса нет. */
+  lockStatus?: boolean
+  /** Дополнительные поля в той же сетке. */
+  children?: ReactNode
 }) {
   const { errors } = state
   const [phone, setPhone] = useState(initial?.phone ?? '')
@@ -181,7 +190,7 @@ function AccountFields({
         hint={
           initial
             ? 'Пусто — прежний пароль останется.'
-            : 'Передайте его рекламодателю: посмотреть потом нельзя.'
+            : `Передайте его ${receiver}: посмотреть потом нельзя.`
         }
         error={errors?.password}
       >
@@ -223,20 +232,24 @@ function AccountFields({
         </div>
       </Field>
 
-      <Field
-        label="Статус"
-        hint="Отключённый не сможет войти, но останется в списке."
-        error={errors?.status}
-      >
-        <SelectField
-          name="status"
-          defaultValue={!initial || initial.isActive ? 'active' : 'off'}
-          options={[
-            { value: 'active', label: 'Активен' },
-            { value: 'off', label: 'Отключён' },
-          ]}
-        />
-      </Field>
+      {children}
+
+      {!lockStatus && (
+        <Field
+          label="Статус"
+          hint="Отключённый не сможет войти, но останется в списке."
+          error={errors?.status}
+        >
+          <SelectField
+            name="status"
+            defaultValue={!initial || initial.isActive ? 'active' : 'off'}
+            options={[
+              { value: 'active', label: 'Активен' },
+              { value: 'off', label: 'Отключён' },
+            ]}
+          />
+        </Field>
+      )}
     </div>
   )
 }

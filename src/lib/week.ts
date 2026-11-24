@@ -81,12 +81,14 @@ export function addDays(iso: string, days: number): string {
 
 /** Понедельник недели, в которой лежит дата. */
 export function startOfWeek(iso: string): string {
-  const dow = (toDate(iso).getUTCDay() + 6) % 7
-  return addDays(iso, -dow)
+  return addDays(iso, -dayOfWeek(iso))
 }
 
 export const weekDays = (start: string) =>
   Array.from({ length: 7 }, (_, i) => addDays(start, i))
+
+/** День недели: 0 — понедельник, 6 — воскресенье. */
+export const dayOfWeek = (iso: string) => (toDate(iso).getUTCDay() + 6) % 7
 
 export const dayOfMonth = (iso: string) => Number(iso.slice(8, 10))
 export const monthIndex = (iso: string) => Number(iso.slice(5, 7)) - 1
@@ -113,14 +115,27 @@ export function humanDate(iso: string): string {
 
 /** «19 ноября 2026, чт» — для карточки брони. */
 export function longDay(iso: string): string {
-  const dow = WEEKDAYS[(toDate(iso).getUTCDay() + 6) % 7].toLowerCase()
+  const dow = WEEKDAYS[dayOfWeek(iso)].toLowerCase()
   return `${dayOfMonth(iso)} ${MONTHS_GEN[monthIndex(iso)]} ${yearOf(iso)}, ${dow}`
 }
 
 /** «Пт, 27 нояб» — заголовок дня в панели ближайших. */
 export function shortDay(iso: string): string {
-  const dow = WEEKDAYS_MINI[(toDate(iso).getUTCDay() + 6) % 7]
-  return `${dow}, ${dayOfMonth(iso)} ${MONTHS_SHORT[monthIndex(iso)]}`
+  const dow = WEEKDAYS_MINI[dayOfWeek(iso)]
+  return `${dow}, ${shortDate(iso)}`
+}
+
+/** «24 нояб». */
+export function shortDate(iso: string): string {
+  return `${dayOfMonth(iso)} ${MONTHS_SHORT[monthIndex(iso)]}`
+}
+
+/** «23–29 нояб» или «30 нояб – 6 дек» — неделя с понедельника `start`. */
+export function shortWeek(start: string): string {
+  const end = addDays(start, 6)
+  return monthIndex(start) === monthIndex(end)
+    ? `${dayOfMonth(start)}–${shortDate(end)}`
+    : `${shortDate(start)} – ${shortDate(end)}`
 }
 
 /** Сетка мини-календаря: 6 недель с понедельника, покрывающие месяц. */

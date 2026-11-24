@@ -1,25 +1,47 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { FileText } from 'lucide-react'
+import { ContractsView } from '@/components/advertisers/ContractsView'
 import { PageHeader } from '@/components/PageHeader'
 import { NewContract } from '@/components/forms/NewContract'
-import { Badge } from '@/components/ui/Badge'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { FileLink } from '@/components/ui/FileDrop'
+import { ViewSwitch } from '@/components/ui/ListOrGrid'
+import { Loader } from '@/components/ui/Loader'
 import { SubTabs } from '@/components/ui/SubTabs'
-import { Table, Td, Th, Tr } from '@/components/ui/Table'
 import { requireSection } from '@/lib/auth'
-import { CONTRACT_STATUS } from '@/lib/contracts'
 import { advertiserOptions } from '@/lib/data/advertisers'
 import { listContracts } from '@/lib/data/contracts'
-import { formatDay, formatPeriod } from '@/lib/dates'
-import { formatPercent } from '@/lib/forms'
 import { ADVERTISER_TABS } from '../tabs'
+import { isEditor } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Договоры' }
 
-export default async function Page() {
+export default function Page() {
+  return (
+    <>
+      <PageHeader
+        title="Рекламодатели и бренды"
+        subtitle="Договоры брендов: номер, срок, сроки оплаты и статус."
+      >
+        <Suspense>
+          <CreateAction />
+        </Suspense>
+      </PageHeader>
+      <SubTabs tabs={ADVERTISER_TABS}>
+        <Suspense>
+          <View />
+        </Suspense>
+      </SubTabs>
+      <Suspense fallback={<Loader />}>
+        <Contracts />
+      </Suspense>
+    </>
+  )
+}
+
+async function load() {
   const user = await requireSection('/advertisers')
-  const canCreate = user.role === 'admin'
+  const canCreate = isEditor(user.role)
   const [rows, advertisers] = await Promise.all([
     listContracts(),
     canCreate ? advertiserOptions() : Promise.resolve([]),
@@ -30,17 +52,30 @@ export default async function Page() {
       advertisers={advertisers.filter((a) => a.status === 'active')}
     />
   )
+  return { rows, advertisers, canCreate, create }
+}
+
+async function View() {
+  const { rows } = await load()
+  if (rows.length === 0) return null
+  return (
+    <ViewSwitch
+      storageKey="contracts-grid"
+      caption={`Договоров: ${rows.length}`}
+    />
+  )
+}
+
+async function CreateAction() {
+  const { rows, create } = await load()
+  return rows.length > 0 && create
+}
+
+async function Contracts() {
+  const { rows, advertisers, canCreate, create } = await load()
 
   return (
     <>
-      <PageHeader
-        title="Рекламодатели и бренды"
-        subtitle="Договоры брендов: номер, срок, сроки оплаты и статус."
-      >
-        {rows.length > 0 && create}
-      </PageHeader>
-      <SubTabs tabs={ADVERTISER_TABS} />
-
       {rows.length === 0 ? (
         <EmptyState
           icon={FileText}
@@ -53,42 +88,7 @@ export default async function Page() {
           action={create}
         />
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>№ договора</Th>
-              <Th>Рекламодатель</Th>
-              <Th>Рекламная кампания</Th>
-              <Th>Срок</Th>
-              <Th>Оплата до</Th>
-              <Th className="text-right">Скидка</Th>
-              <Th>Файл</Th>
-              <Th>Статус</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ contract: c, advertiserName }) => (
-              <Tr key={c.id}>
-                <Td className="font-mono text-[13px] font-semibold text-ink">
-                  {c.number}
-                </Td>
-                <Td className="text-ink">{advertiserName}</Td>
-                <Td>{c.campaignName || '—'}</Td>
-                <Td className="tnum">{formatPeriod(c.startDate, c.endDate)}</Td>
-                <Td className="tnum">{formatDay(c.paymentDate)}</Td>
-                <Td className="text-right tnum">{formatPercent(c.discount)}</Td>
-                <Td className="max-w-[200px]">
-                  {c.file ? <FileLink file={c.file} /> : '—'}
-                </Td>
-                <Td>
-                  <Badge tone={CONTRACT_STATUS[c.status].tone} dot>
-                    {CONTRACT_STATUS[c.status].label}
-                  </Badge>
-                </Td>
-              </Tr>
-            ))}
-          </tbody>
-        </Table>
+        <ContractsView rows={rows} />
       )}
     </>
   )

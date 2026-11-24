@@ -14,6 +14,7 @@ import {
   type FormState,
 } from '@/lib/forms'
 import { isPaletteColor } from '@/lib/palette'
+import { EDITORS } from '@/lib/roles'
 
 /** Поля формата из формы — общие для создания и правки. */
 function readFormat(fd: FormData) {
@@ -54,7 +55,7 @@ export async function createFormat(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
   const read = readFormat(fd)
   if (!read.ok) return { errors: read.errors }
 
@@ -83,7 +84,7 @@ export async function updateFormat(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  await requireRole(['admin'])
+  await requireRole(EDITORS)
   const id = text(fd, 'id', 36)
   const read = readFormat(fd)
   if (!read.ok) return { errors: read.errors }

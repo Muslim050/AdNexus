@@ -103,7 +103,6 @@ export function PaymentsBlock({
           <PaymentForm
             key={round}
             bookingId={slot.id}
-            suggested={left > 0 ? left : 0}
             onDone={() => setAdding(false)}
           />
         )}
@@ -225,11 +224,9 @@ function PaymentRow({
 
 function PaymentForm({
   bookingId,
-  suggested,
   onDone,
 }: {
   bookingId: string
-  suggested: number
   onDone: () => void
 }) {
   const toast = useToast()
@@ -264,12 +261,8 @@ function PaymentForm({
       </p>
       <input type="hidden" name="bookingId" value={bookingId} />
       <Field label="Сумма, сум" required error={errors?.amount}>
-        <MoneyInput
-          name="amount"
-          defaultValue={suggested ? String(suggested) : ''}
-          invalid={!!errors?.amount}
-          autoFocus
-        />
+        {/* Сумму вводят сами: остаток не подставляем, чтобы не внести лишнее. */}
+        <MoneyInput name="amount" invalid={!!errors?.amount} autoFocus />
       </Field>
       <div className="grid gap-4 sm:grid-cols-[1fr_130px]">
         <Field label="Дата оплаты" required error={errors?.date}>

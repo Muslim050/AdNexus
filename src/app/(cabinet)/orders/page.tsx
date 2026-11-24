@@ -1,6 +1,8 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/PageHeader'
 import { OrdersView } from '@/components/orders/OrdersView'
+import { Loader } from '@/components/ui/Loader'
 import { requireSection } from '@/lib/auth'
 import { isBookingStatus } from '@/lib/bookings'
 import { advertiserOptions } from '@/lib/data/advertisers'
@@ -13,6 +15,7 @@ import {
   type OrdersFilter,
 } from '@/lib/data/orders'
 import { todayTashkent } from '@/lib/week'
+import { isEditor } from '@/lib/roles'
 
 export const metadata: Metadata = { title: 'Заказы и медиапланы' }
 
@@ -20,7 +23,23 @@ export const metadata: Metadata = { title: 'Заказы и медиапланы
  * Список публикаций. Фильтры живут в адресе:
  * ?status=sent&month=2026-11&format=…&q=…&page=2
  */
-export default async function Page({ searchParams }: PageProps<'/orders'>) {
+export default function Page({ searchParams }: PageProps<'/orders'>) {
+  return (
+    <>
+      <PageHeader
+        title="Заказы и медиапланы"
+        subtitle="Публикации брендов: оплаты и статусы. Нажмите на строку, чтобы открыть карточку."
+      />
+      <Suspense fallback={<Loader />}>
+        <Orders searchParams={searchParams} />
+      </Suspense>
+    </>
+  )
+}
+
+async function Orders({
+  searchParams,
+}: Pick<PageProps<'/orders'>, 'searchParams'>) {
   const user = await requireSection('/orders')
   const sp = await searchParams
   const one = (k: string) => {
@@ -42,8 +61,8 @@ export default async function Page({ searchParams }: PageProps<'/orders'>) {
   const formatId = /^[0-9a-f-]{36}$/.test(one('format')) ? one('format') : ''
   const page = Math.max(1, Number(one('page')) || 1)
 
-  const isAdmin = user.role === 'admin'
-  const canBook = isAdmin || user.role === 'advertiser'
+  const canManage = isEditor(user.role)
+  const canBook = canManage || user.role === 'advertiser'
   const [list, formats, managers, advertisers, contracts] = await Promise.all([
     listOrders({
       status,
@@ -54,34 +73,28 @@ export default async function Page({ searchParams }: PageProps<'/orders'>) {
       page,
     }),
     formatOptions(),
-    isAdmin ? managerOptions() : Promise.resolve([]),
+    canManage ? managerOptions() : Promise.resolve([]),
     canBook ? advertiserOptions() : Promise.resolve([]),
     canBook ? contractOptions() : Promise.resolve([]),
   ])
 
   return (
-    <>
-      <PageHeader
-        title="Заказы и медиапланы"
-        subtitle="Публикации брендов: оплаты и статусы. Нажмите на строку, чтобы открыть карточку."
-      />
-      <OrdersView
-        rows={list.rows}
-        total={list.total}
-        page={page}
-        pageSize={ORDERS_PAGE_SIZE}
-        counts={list.counts}
-        query={{ status, formatId, q, period }}
-        currentMonth={currentMonth}
-        today={today}
-        stats={list.stats}
-        formats={formats}
-        managers={managers}
-        advertisers={advertisers}
-        contracts={contracts}
-        role={user.role}
-        currentUserId={user.id}
-      />
-    </>
+    <OrdersView
+      rows={list.rows}
+      total={list.total}
+      page={page}
+      pageSize={ORDERS_PAGE_SIZE}
+      counts={list.counts}
+      query={{ status, formatId, q, period }}
+      currentMonth={currentMonth}
+      today={today}
+      stats={list.stats}
+      formats={formats}
+      managers={managers}
+      advertisers={advertisers}
+      contracts={contracts}
+      role={user.role}
+      currentUserId={user.id}
+    />
   )
 }

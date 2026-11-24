@@ -22,11 +22,12 @@ export function Loader({ label, full = false, className }) {
       aria-busy="true"
       className={cn(
         'flex flex-col items-center justify-center gap-6',
-        // Без `full` лоадер занимает всю видимую область раздела: шапка 64px
-        // плюс отступы main — иначе он прижимается к верху страницы.
+        // Без `full` — на месте содержимого раздела: заголовок и вкладки уже
+        // видны. Высота с запасом, чтобы на время загрузки не появлялась
+        // прокрутка.
         full
           ? 'min-h-screen bg-paper'
-          : 'min-h-[calc(100vh-160px)] sm:min-h-[calc(100vh-180px)]',
+          : 'min-h-[max(240px,calc(100dvh-440px))] flex-1',
         className,
       )}
     >

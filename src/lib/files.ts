@@ -15,16 +15,21 @@ export interface AttachedFile {
 
 /** Папки хранилища — по сущностям. Загрузка в другие запрещена. */
 // formats — превью форматов, logos — логотипы брендов: их видит любой вошедший.
+// facts — скриншоты публикаций для стыковки.
 export const FILE_FOLDERS = [
   'contracts',
   'bookings',
   'formats',
   'logos',
+  'facts',
 ] as const
 export type FileFolder = (typeof FILE_FOLDERS)[number]
 
 /** До 200 МБ: сканы и ролики. */
 export const MAX_FILE_BYTES = 200 * 1024 * 1024
+
+/** Скриншот публикации. */
+export const MAX_SCREENSHOT_BYTES = 15 * 1024 * 1024
 
 export const ALLOWED_CONTENT_TYPES = [
   'application/pdf',

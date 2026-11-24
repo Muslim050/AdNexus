@@ -71,6 +71,13 @@
       "when": 1795446894895,
       "tag": "0009_advertiser_user_details",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795543184723,
+      "tag": "0010_booking_facts",
+      "breakpoints": true
     }
   ]
 }
