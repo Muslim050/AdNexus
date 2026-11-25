@@ -15,7 +15,8 @@ import {
 import { requireRole } from '@/lib/auth'
 import { dropFile } from '@/lib/blob'
 import { isBookingStatus, type BookingStatus } from '@/lib/bookings'
-import { formatDay } from '@/lib/dates'
+import { formatDay, formatPeriod } from '@/lib/dates'
+import { plannedAt } from '@/lib/facts'
 import { parseAttachedFile, type AttachedFile } from '@/lib/files'
 import {
   dateField,
@@ -25,13 +26,7 @@ import {
   type FormState,
 } from '@/lib/forms'
 import { suggestedAmount } from '@/lib/pricing'
-import {
-  BOOKERS,
-  EDITORS,
-  isEditor,
-  type SessionUser,
-  STAFF,
-} from '@/lib/roles'
+import { BOOKERS, EDITORS, isEditor, type SessionUser } from '@/lib/roles'
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -57,10 +52,14 @@ interface BookingValues {
 async function readBooking(
   fd: FormData,
   user: SessionUser,
-  /** Бронь при правке: её формат и бренд остаются доступны. */
+  /** Бронь при правке: её формат, бренд и менеджер остаются доступны. */
   current?: {
     formatId: string
     advertiserId: string | null
+    contractId: string | null
+    managerId: string | null
+    date: string
+    time: string
     file: AttachedFile | null
   },
 ): Promise<
@@ -114,7 +113,8 @@ async function readBooking(
       .from(placementFormats)
       .where(eq(placementFormats.id, values.formatId))
       .limit(1),
-    values.managerId
+    // Прежнего менеджера брони не требуем заново: его могли отключить.
+    values.managerId && values.managerId !== current?.managerId
       ? db
           .select({ id: users.id })
           .from(users)
@@ -122,14 +122,20 @@ async function readBooking(
             and(
               eq(users.id, values.managerId),
               eq(users.isActive, true),
-              inArray(users.role, STAFF),
+              inArray(users.role, EDITORS),
             ),
           )
           .limit(1)
           .then((r) => r.length > 0)
       : Promise.resolve(true),
     db
-      .select({ id: contracts.id, discount: contracts.discount })
+      .select({
+        id: contracts.id,
+        discount: contracts.discount,
+        status: contracts.status,
+        startDate: contracts.startDate,
+        endDate: contracts.endDate,
+      })
       .from(contracts)
       .where(
         and(
@@ -160,6 +166,48 @@ async function readBooking(
       state: {
         errors: { contractId: 'Договор не найден у этого рекламодателя' },
       },
+    }
+  }
+  // Рекламодатель не бронирует прошлое и вне договора. Сотрудник может —
+  // задним числом бывает нужно; форма его об этом предупреждает. Правку
+  // старой заявки проверяем, только если сдвинули время или сменили договор.
+  if (
+    isAdvertiser &&
+    (!current ||
+      current.date !== date ||
+      current.time !== values.time ||
+      current.contractId !== values.contractId)
+  ) {
+    if (plannedAt(date, values.time) <= new Date()) {
+      return {
+        ok: false,
+        state: {
+          errors: { date: 'Это время уже прошло — выберите другое' },
+        },
+      }
+    }
+    if (contract.status !== 'active') {
+      return {
+        ok: false,
+        state: {
+          errors: {
+            contractId: 'Договор не действует — обратитесь к менеджеру',
+          },
+        },
+      }
+    }
+    if (
+      (contract.startDate && date < contract.startDate) ||
+      (contract.endDate && date > contract.endDate)
+    ) {
+      return {
+        ok: false,
+        state: {
+          errors: {
+            date: `Дата вне срока договора: ${formatPeriod(contract.startDate, contract.endDate)}`,
+          },
+        },
+      }
     }
   }
   // Отключённый бренд новых броней не получает, старые править можно.
@@ -216,6 +264,9 @@ async function editableBooking(id: string, user: SessionUser) {
     .select({
       formatId: bookings.formatId,
       contractId: bookings.contractId,
+      managerId: bookings.managerId,
+      date: bookings.date,
+      time: bookings.time,
       amount: bookings.amount,
       file: bookings.file,
       status: bookings.status,

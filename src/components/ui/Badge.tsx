@@ -7,6 +7,7 @@ const tones = {
   warning: 'bg-warning/10 text-warning border-warning/30',
   danger: 'bg-danger/8 text-danger border-danger/25',
   indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  info: 'bg-info/8 text-info border-info/25',
   muted: 'bg-ink/[0.04] text-ink-soft border-ink/12',
   lime: 'bg-lime-50 text-lime-600 border-lime-200',
 }

@@ -88,7 +88,7 @@ async function Contracts() {
           action={create}
         />
       ) : (
-        <ContractsView rows={rows} />
+        <ContractsView rows={rows} canEdit={canCreate} />
       )}
     </>
   )

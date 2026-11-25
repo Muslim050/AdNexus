@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ListOrdered } from 'lucide-react'
+import { ListOrdered, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { BrandAvatar } from '@/components/ui/BrandAvatar'
 import { Block, Item } from '@/components/ui/DetailBlock'
@@ -17,9 +18,12 @@ import { formatPercent } from '@/lib/forms'
 export function ContractDetails({
   row,
   onClose,
+  onEdit,
 }: {
   row: ContractRow | null
   onClose: () => void
+  /** Без права правки кнопки нет. */
+  onEdit?: (id: string) => void
 }) {
   // Пока окно закрывается, в нём остаётся последний договор.
   const [last, setLast] = useState(row)
@@ -61,6 +65,12 @@ export function ContractDetails({
             <ListOrdered size={15} aria-hidden="true" />
             Публикации
           </Link>
+          {onEdit && (
+            <Button size="sm" onClick={() => onEdit(c.id)}>
+              <Pencil size={15} />
+              Изменить
+            </Button>
+          )}
         </>
       }
     >

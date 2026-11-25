@@ -11,7 +11,7 @@ import {
 } from '@/components/shadcn/popover'
 import { cn } from '@/lib/cn'
 import { humanDate } from '@/lib/week'
-import { baseControl } from './Field'
+import { baseControl, useField, useFieldAria } from './Field'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 /** 'YYYY-MM-DD' ↔ локальная дата браузера — без сдвига часового пояса. */
@@ -52,6 +52,8 @@ export function DatePicker({
   const [own, setOwn] = useState(defaultValue)
   const [open, setOpen] = useState(false)
   const value = controlled ?? own
+  const field = useField()
+  const aria = useFieldAria(invalid)
 
   const set = (next: string) => {
     if (controlled === undefined) setOwn(next)
@@ -70,17 +72,21 @@ export function DatePicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           type="button"
-          aria-invalid={invalid || undefined}
+          {...aria}
+          // Подпись поля и выбранная дата — чтобы читалось «Дата, 25 ноября».
+          aria-labelledby={
+            field && aria.id ? `${field.labelId} ${aria.id}` : undefined
+          }
           className={cn(
             baseControl,
             'flex h-11 cursor-pointer items-center justify-between gap-2 text-left',
             open &&
               'border-indigo-500 shadow-[inset_0_-2px_0_var(--color-indigo-500)]',
-            invalid && 'border-danger',
+            aria['aria-invalid'] && 'border-danger',
           )}
         >
           <span
-            className={cn('truncate', value ? 'text-ink' : 'text-ink-muted/80')}
+            className={cn('truncate', value ? 'text-ink' : 'text-ink-muted')}
           >
             {value ? humanDate(value) : placeholder}
           </span>

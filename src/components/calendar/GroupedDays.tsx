@@ -24,17 +24,6 @@ interface Props {
   onOpen: (slot: CalendarSlot) => void
 }
 
-/** Подпись в группе: формат уже в заголовке, остаются время, бренд, кампания. */
-const groupLabel = (s: CalendarSlot, ownBrand: boolean) =>
-  [
-    s.time,
-    ...(s.masked
-      ? ['Занято']
-      : [!ownBrand && s.advertiserName, s.campaignName]),
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
 /**
  * Дни без шкалы времени: слоты собраны по формату, внутри — по времени.
  * Группа сворачивается, вышедшие слоты приглушены.
@@ -152,7 +141,7 @@ export function GroupedDays({
                             <SlotChip
                               key={s.id}
                               slot={s}
-                              label={groupLabel(s, ownBrand)}
+                              ownBrand={ownBrand}
                               passed={isPassed(s)}
                               onOpen={onOpen}
                             />

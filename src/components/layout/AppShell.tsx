@@ -11,7 +11,13 @@ import { MobileNav } from './Navigation'
  * Каркас кабинета: сверху тёмная «вывеска» с разделами, под ней — лист
  * страницы. Бокового меню нет: разделов немного, и они помещаются в строку.
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  bell,
+}: {
+  children: ReactNode
+  bell?: ReactNode
+}) {
   const [mobileNav, setMobileNav] = useState(false)
   const pathname = usePathname()
   // Календарю с панелями нужна вся ширина, иначе дни недели узкие. На широком
@@ -29,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Topbar
         mobileNavOpen={mobileNav}
         onBurger={() => setMobileNav((open) => !open)}
+        bell={bell}
       />
 
       <AnimatePresence>

@@ -16,7 +16,7 @@ import { FormDrawer } from '@/components/forms/CreateDrawer'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/cn'
 import { isEditor, type Role } from '@/lib/roles'
-import { nowTashkent } from '@/lib/useNow'
+import { nextHalfHour } from '@/lib/useNow'
 import { useStoredFlag } from '@/lib/useStoredFlag'
 import { addDays, humanDate, longDay, weekDays, weekTitle } from '@/lib/week'
 import {
@@ -118,11 +118,13 @@ export function CalendarView({
       formatId,
       round: c.round + 1,
     }))
-  // Кнопка «Забронировать»: текущее время; день — сегодня, если оно на
-  // экране, иначе первый из показанных.
+  // Кнопка «Забронировать»: ближайшие полчаса; день — сегодня, если он на
+  // экране, иначе первый показанный, но не в прошлом.
   const bookDefault = () => {
-    const now = nowTashkent()
-    book(days.includes(now.date) ? now.date : days[0], now.time)
+    const next = nextHalfHour()
+    const day =
+      days.includes(next.date) || days[0] < next.date ? next.date : days[0]
+    book(day, next.time)
   }
 
   const visible = slots.filter((s) => !hidden.includes(s.formatId))
@@ -165,7 +167,7 @@ export function CalendarView({
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-3 sm:px-4">
           <Link
             href={calendarHref(view)}
-            className="flex h-9 items-center border border-ink/20 px-4 text-[13px] font-semibold text-ink transition-colors hover:border-ink focus-ring"
+            className="flex h-9 items-center border border-ink/20 px-3 sm:px-4 text-[13px] font-semibold text-ink transition-colors hover:border-ink focus-ring"
           >
             Сегодня
           </Link>
@@ -189,17 +191,18 @@ export function CalendarView({
               <ChevronRight size={18} />
             </Link>
           </div>
-          <h2 className="font-display text-lg font-bold text-ink sm:text-xl">
+          <h2 className="min-w-0 font-display text-[16px] font-bold text-ink sm:text-xl">
             {view === 'day' ? humanDate(anchor) : weekTitle(weekStart)}
           </h2>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          {/* На телефоне — второй строкой во всю ширину: режим, группы, бронь. */}
+          <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto sm:flex-wrap">
             <span className="eyebrow hidden text-ink-muted 2xl:block">
               {visible.length} {plural(visible.length)}
             </span>
             <label
               title="Слоты дня — по форматам, без шкалы времени"
-              className="flex h-9 cursor-pointer items-center gap-2 px-1.5 text-[13px] font-semibold text-ink-soft transition-colors hover:text-ink"
+              className="flex h-9 cursor-pointer items-center gap-2 text-[13px] sm:px-1.5 font-semibold text-ink-soft transition-colors hover:text-ink"
             >
               <input
                 type="checkbox"
@@ -257,10 +260,11 @@ export function CalendarView({
                 size="sm"
                 onClick={bookDefault}
                 disabled={!canCreate}
-                className="lg:hidden"
+                aria-label="Забронировать слот"
+                className="ml-auto max-sm:w-9 max-sm:px-0 lg:hidden"
               >
                 <Plus size={15} />
-                Слот
+                <span className="max-sm:hidden">Слот</span>
               </Button>
             )}
           </div>
@@ -275,7 +279,7 @@ export function CalendarView({
             ownBrand={role === 'advertiser'}
             canCreate={canCreate}
             onBook={(date, formatId) =>
-              book(date, nowTashkent().time, formatId)
+              book(date, nextHalfHour().time, formatId)
             }
             onOpen={(s) => setOpenedId(s.id)}
           />
@@ -284,6 +288,7 @@ export function CalendarView({
             days={days}
             today={today}
             slots={visible}
+            ownBrand={role === 'advertiser'}
             canCreate={canCreate}
             onBook={book}
             onOpen={(s) => setOpenedId(s.id)}

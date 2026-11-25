@@ -11,6 +11,7 @@ import type { ContractStatus } from '@/db/schema'
 import type { AdvertiserStatus } from '@/lib/advertisers'
 import { BOOKING_STATUS, type BookingStatus } from '@/lib/bookings'
 import { CONTRACT_STATUS } from '@/lib/contracts'
+import { useNow } from '@/lib/useNow'
 import { formatPeriod } from '@/lib/dates'
 import type { AttachedFile } from '@/lib/files'
 import { formatPercent, formatSum, type FormState } from '@/lib/forms'
@@ -63,6 +64,8 @@ export interface BookingInitial {
   campaignName: string
   comment: string
   file: AttachedFile | null
+  /** Чтобы прежний менеджер остался в списке, даже если его там уже нет. */
+  managerName?: string | null
 }
 
 interface Props {
@@ -117,6 +120,7 @@ export function BookingFields({
     initial?.campaignName ?? soleContract?.campaignName ?? '',
   )
   const [formatId, setFormatId] = useState(initial?.formatId ?? presetFormatId)
+  const [when, setWhen] = useState({ date, time })
   // Сумму подставляем расчётом, пока её не ввели руками.
   const [amount, setAmount] = useState(
     initial && Number(initial.amount) ? String(Number(initial.amount)) : '',
@@ -149,6 +153,40 @@ export function BookingFields({
       ? String(suggestion)
       : ''
 
+  // Предупреждения: сохранить можно, но лучше проверить. Рекламодателю
+  // сервер такое не пропустит — подсказка объясняет почему заранее.
+  const now = useNow()
+  const moved = !initial || when.date !== date || when.time !== time
+  const inPast =
+    moved &&
+    now != null &&
+    `${when.date} ${when.time}` < `${now.date} ${now.time}`
+  const outOfTerm =
+    contract &&
+    ((contract.startDate && when.date < contract.startDate) ||
+      (contract.endDate && when.date > contract.endDate))
+  const contractWarning = !contract
+    ? undefined
+    : contract.status !== 'active'
+      ? `Договор ${CONTRACT_STATUS[contract.status].label.toLowerCase()}.`
+      : outOfTerm
+        ? `Дата публикации вне срока договора: ${formatPeriod(contract.startDate, contract.endDate)}.`
+        : undefined
+
+  // Менеджер брони, которого больше нет в списке, остаётся выбранным.
+  const managerOptions = managers.map((m) => ({
+    value: m.id,
+    label: m.name,
+    hint: ROLE_INFO[m.role].label,
+  }))
+  if (initial?.managerId && !managers.some((m) => m.id === initial.managerId)) {
+    managerOptions.push({
+      value: initial.managerId,
+      label: initial.managerName ?? 'Прежний менеджер',
+      hint: 'Не ведёт брони — лучше выбрать другого',
+    })
+  }
+
   const pickContract = (id: string) => {
     const next = contracts.find((c) => c.id === id)
     // Название кампании — из договора, если его не меняли руками.
@@ -169,18 +207,29 @@ export function BookingFields({
     <>
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <div className="grid gap-5 sm:grid-cols-[1fr_140px]">
-        <Field label="Дата" required error={errors?.date}>
+        <Field
+          label="Дата"
+          required
+          error={errors?.date}
+          warning={
+            inPast
+              ? isAdvertiser
+                ? 'Это время уже прошло — выберите другое.'
+                : 'Это время уже прошло: бронь будет задним числом.'
+              : undefined
+          }
+        >
           <DatePicker
             name="date"
-            defaultValue={date}
-            invalid={!!errors?.date}
+            value={when.date}
+            onChange={(d) => setWhen((w) => ({ ...w, date: d }))}
           />
         </Field>
         <Field label="Время" required error={errors?.time}>
           <TimePicker
             name="time"
             defaultValue={time}
-            invalid={!!errors?.time}
+            onChange={(t) => setWhen((w) => ({ ...w, time: t }))}
           />
         </Field>
       </div>
@@ -208,12 +257,7 @@ export function BookingFields({
                     ? currentUserId
                     : ''
               }
-              invalid={!!errors?.managerId}
-              options={managers.map((m) => ({
-                value: m.id,
-                label: m.name,
-                hint: ROLE_INFO[m.role].label,
-              }))}
+              options={managerOptions}
             />
           </Field>
         </div>
@@ -225,7 +269,6 @@ export function BookingFields({
           placeholder="Выберите формат"
           value={formatId}
           onChange={setFormatId}
-          invalid={!!errors?.formatId}
           options={formats
             // Отключённый формат остаётся в списке у брони, которая на нём стоит.
             .filter((f) => f.isActive || f.id === initial?.formatId)
@@ -246,7 +289,6 @@ export function BookingFields({
             placeholder="Выберите рекламодателя"
             value={advertiserId}
             onChange={pickAdvertiser}
-            invalid={!!errors?.advertiserId}
             emptyText="Нет рекламодателей с договорами"
             options={withContracts.map((a) => ({ value: a.id, label: a.name }))}
           />
@@ -257,6 +299,7 @@ export function BookingFields({
         label="Договор"
         required
         hint={!advertiserId ? 'Сначала выберите рекламодателя.' : undefined}
+        warning={contractWarning}
         error={errors?.contractId}
       >
         <SelectField
@@ -265,7 +308,6 @@ export function BookingFields({
           value={contractId}
           onChange={pickContract}
           disabled={!advertiserId}
-          invalid={!!errors?.contractId}
           emptyText="Договоров пока нет"
           options={brandContracts.map((c) => ({
             value: c.id,
@@ -317,7 +359,6 @@ export function BookingFields({
           name="campaignName"
           value={campaignName}
           onChange={(e) => setCampaignName(e.target.value)}
-          aria-invalid={!!errors?.campaignName || undefined}
         />
       </Field>
 
@@ -356,7 +397,6 @@ export function BookingFields({
                 setAmountTouched(true)
                 setAmount(plain)
               }}
-              invalid={!!errors?.amount}
             />
             {amountTouched &&
               suggestion > 0 &&

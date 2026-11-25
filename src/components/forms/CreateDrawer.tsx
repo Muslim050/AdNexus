@@ -13,8 +13,10 @@ import {
   type ButtonSize,
   type ButtonVariant,
 } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
+import { FormError } from '@/components/ui/FormError'
+import { Modal, useModalClose } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { useDraftRef, useFocusFirstError } from '@/lib/draft'
 import type { FormState } from '@/lib/forms'
 
 type Action = (prev: FormState, fd: FormData) => Promise<FormState>
@@ -128,6 +130,8 @@ function DrawerForm({
   children: (state: FormState) => ReactNode
 }) {
   const toast = useToast()
+  const requestClose = useModalClose()
+  const formRef = useDraftRef()
   const [waitUpload, setWaitUpload] = useState(false)
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     async (prev, fd) => {
@@ -144,6 +148,7 @@ function DrawerForm({
     },
     {},
   )
+  useFocusFirstError(formRef, state)
 
   // Отправляем сами, а не через `action`: React после action сбрасывает
   // форму, и при ошибке выбор в <select> терялся бы. Без сброса всё
@@ -161,25 +166,24 @@ function DrawerForm({
   }
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-5">
+    <form ref={formRef} onSubmit={submit} noValidate className="space-y-5">
       {children(state)}
-      {waitUpload && (
-        <p className="border-l-2 border-warning bg-warning/8 px-3 py-2 text-sm text-warning">
-          Дождитесь окончания загрузки файла.
-        </p>
-      )}
-      {state.error && (
-        <p className="border-l-2 border-danger bg-danger/6 px-3 py-2 text-sm text-danger">
-          {state.error}
-        </p>
-      )}
-      <div className="flex justify-end gap-2 border-t border-line pt-5">
-        <Button variant="secondary" onClick={onDone} disabled={pending}>
-          Отмена
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? 'Сохраняем…' : submitLabel}
-        </Button>
+      {/* Низ формы прилипает к краю панели: «Сохранить» видно всегда. */}
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-5 space-y-3 border-t border-line bg-surface px-4 py-4 sm:-mx-6 sm:px-6">
+        {waitUpload && (
+          <FormError tone="warning">
+            Дождитесь окончания загрузки файла.
+          </FormError>
+        )}
+        {state.error && <FormError>{state.error}</FormError>}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={requestClose} disabled={pending}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={pending}>
+            {pending ? 'Сохраняем…' : submitLabel}
+          </Button>
+        </div>
       </div>
     </form>
   )

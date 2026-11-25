@@ -13,6 +13,7 @@ export function DayHead({ day, today }: { day: string; today: string }) {
     <Link
       href={calendarHref('day', day)}
       title="Открыть день"
+      data-today={isToday || undefined}
       className="group flex flex-col items-center gap-1 border-l border-line py-2.5 focus-ring"
     >
       <span

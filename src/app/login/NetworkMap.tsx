@@ -32,7 +32,7 @@ const SLOTS: Slot[] = [
 export function NetworkMap() {
   return (
     <div className="relative">
-      <div className="eyebrow mb-3 text-white/40">Рабочий кабинет</div>
+      <div className="eyebrow mb-3 text-white/60">Рабочий кабинет</div>
       <div className="grid grid-cols-6 grid-rows-[repeat(4,64px)] gap-1.5 border border-white/15 p-1.5 xl:grid-rows-[repeat(4,76px)]">
         {SLOTS.map((slot, index) => (
           <motion.div
@@ -47,13 +47,13 @@ export function NetworkMap() {
                 ? 'bg-lime-300 text-forest'
                 : slot.name
                   ? 'border border-white/20 bg-white/[0.04] text-white'
-                  : 'border border-dashed border-white/15 bg-[repeating-linear-gradient(-45deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_7px)] text-white/30',
+                  : 'border border-dashed border-white/15 bg-[repeating-linear-gradient(-45deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_7px)] text-white/60',
             )}
           >
             <span
               className={cn(
                 'font-mono text-[10px] font-semibold tracking-wider',
-                slot.highlight ? 'text-forest/60' : 'text-white/35',
+                slot.highlight ? 'text-forest/80' : 'text-white/60',
               )}
             >
               {slot.code}

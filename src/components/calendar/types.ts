@@ -1,4 +1,4 @@
-import type { BookingStatus } from '@/lib/bookings'
+import { BOOKING_STATUS, type BookingStatus } from '@/lib/bookings'
 import type { BookingFact } from '@/lib/facts'
 import type { AttachedFile } from '@/lib/files'
 
@@ -48,13 +48,26 @@ export interface BookingPayment {
 
 export type CalendarView = 'week' | 'day'
 
-/** Подпись слота: «10:30 | Айша | Post Instagram uzb | Зимняя кампания». */
-export const slotLabel = (s: CalendarSlot) =>
+/**
+ * Чья публикация — подпись слота после времени: «Artel · Зимняя кампания».
+ * Рекламодатель видит только своё, поэтому бренд ему не повторяем.
+ */
+export const slotText = (s: CalendarSlot, ownBrand = false) =>
   s.masked
-    ? `${s.time} | Занято | ${s.formatName}`
-    : [s.time, s.managerName ?? 'Без менеджера', s.formatName, s.campaignName]
+    ? 'Занято'
+    : [!ownBrand && s.advertiserName, s.campaignName]
         .filter(Boolean)
-        .join(' | ')
+        .join(' · ') || s.formatName
+
+/** Всё о слоте одной строкой — подсказка при наведении. */
+export const slotTitle = (s: CalendarSlot) =>
+  [
+    s.time,
+    slotText(s),
+    s.formatName,
+    s.managerName ?? 'Менеджер не назначен',
+    BOOKING_STATUS[s.status].label,
+  ].join(' · ')
 
 /** Список справа: день, неделя или все публикации лентой. */
 export type ListMode = 'day' | 'week' | 'all'
@@ -78,10 +91,9 @@ export const calendarHref = (
   date?: string,
   list?: Iterable<[string, string]>,
 ) => {
-  const params = new URLSearchParams()
-  if (view === 'day') params.set('view', 'day')
+  // Режим — в адресе всегда: без него телефон откроет день, а не неделю.
+  const params = new URLSearchParams({ view })
   if (date) params.set('d', date)
   for (const [key, value] of list ?? []) params.set(key, value)
-  const qs = params.toString()
-  return qs ? `/calendar?${qs}` : '/calendar'
+  return `/calendar?${params}`
 }

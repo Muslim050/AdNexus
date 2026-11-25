@@ -56,7 +56,7 @@ export const PERMISSIONS: {
   { label: 'Смотреть стыковку публикаций', roles: STAFF, own: ['advertiser'] },
   { label: 'Вносить факт публикации', roles: EDITORS },
   { label: 'Смотреть бренды, договоры и справочник', roles: STAFF },
-  { label: 'Добавлять и менять бренды, добавлять договоры', roles: EDITORS },
+  { label: 'Добавлять и менять бренды и договоры', roles: EDITORS },
   { label: 'Выдавать доступ рекламодателям', roles: EDITORS },
   { label: 'Менять форматы и цены в справочнике', roles: EDITORS },
   { label: 'Добавлять сотрудников и менять роли', roles: OWNERS },

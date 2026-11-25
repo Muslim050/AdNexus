@@ -61,7 +61,11 @@ export function ToastProvider({ children }) {
       {children}
       {isClient &&
         createPortal(
-          <div className="pointer-events-none fixed right-5 top-20 z-60 flex w-[360px] max-w-[calc(100vw-2.5rem)] flex-col gap-2">
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none fixed right-5 top-20 z-60 flex w-[360px] max-w-[calc(100vw-2.5rem)] flex-col gap-2"
+          >
             <AnimatePresence>
               {toasts.map((t) => {
                 const Icon = icons[t.type]

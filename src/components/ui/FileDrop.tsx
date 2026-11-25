@@ -11,6 +11,7 @@ import {
   type AttachedFile,
   type FileFolder,
 } from '@/lib/files'
+import { useField } from './Field'
 import { Progress } from './Progress'
 
 interface FileDropProps {
@@ -47,6 +48,8 @@ export function FileDrop({
   const [error, setError] = useState('')
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const field = useField()
+  const flagged = invalid || field?.invalid
   const abortRef = useRef<AbortController | null>(null)
 
   const start = async (picked: File) => {
@@ -169,6 +172,9 @@ export function FileDrop({
           role="button"
           tabIndex={uploading ? -1 : 0}
           aria-label="Загрузить файл"
+          aria-describedby={field?.describedBy}
+          // Помечаем для фокуса на первой ошибке формы.
+          data-invalid={flagged || undefined}
           onClick={() => !uploading && inputRef.current?.click()}
           onKeyDown={(e) => {
             if (!uploading && (e.key === 'Enter' || e.key === ' ')) {
@@ -188,7 +194,7 @@ export function FileDrop({
               ? 'cursor-default border-indigo-300 bg-indigo-50/50'
               : 'cursor-pointer bg-hatch hover:border-indigo-400 hover:bg-indigo-50/40',
             dragging ? 'border-indigo-500 bg-indigo-50' : 'border-ink/18',
-            (invalid || error) && !dragging && 'border-danger/60',
+            (flagged || error) && !dragging && 'border-danger/60',
           )}
         >
           {uploading ? (

@@ -22,7 +22,7 @@ import {
   users,
 } from '@/db/schema'
 import { requireRole } from '@/lib/auth'
-import { ROLES, STAFF } from '@/lib/roles'
+import { EDITORS, ROLES, STAFF } from '@/lib/roles'
 
 /** Поля брони для календаря, списка и карточки — один набор везде. */
 export const bookingFields = {
@@ -226,9 +226,10 @@ export async function feedBookings(today: string, up: number, down: number) {
 /** Менеджеры для брони — сотрудники площадки с активной учётной записью. */
 export async function managerOptions() {
   await requireRole(STAFF)
+  // Вести бронь может только тот, кто вправе её менять: не наблюдатель.
   return getDb()
     .select({ id: users.id, name: users.name, role: users.role })
     .from(users)
-    .where(and(eq(users.isActive, true), inArray(users.role, STAFF)))
+    .where(and(eq(users.isActive, true), inArray(users.role, EDITORS)))
     .orderBy(asc(users.name))
 }
