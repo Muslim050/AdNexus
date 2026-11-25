@@ -50,6 +50,11 @@ export function SlotDetails({
     id: string
     status: BookingStatus
   } | null>(null)
+  // Последняя смена статуса в этой карточке — её можно отменить.
+  const [changed, setChanged] = useState<{
+    id: string
+    from: BookingStatus
+  } | null>(null)
 
   const status =
     slot && statusOverride?.id === slot.id
@@ -70,6 +75,7 @@ export function SlotDetails({
   const close = () => {
     setConfirming(false)
     setStatusOverride(null)
+    setChanged(null)
     onClose()
   }
 
@@ -86,20 +92,22 @@ export function SlotDetails({
     })
   }
 
-  const changeStatus = (next: string) => {
-    if (!slot || next === status) return
+  const changeStatus = (next: string, undo = false) => {
+    if (!slot || !status || next === status) return
     const previous = status
     setStatusOverride({ id: slot.id, status: next as BookingStatus })
     startTransition(async () => {
       const result = await setBookingStatus(slot.id, next)
       if (result.ok) {
-        toast.success(`Статус: ${BOOKING_STATUS[next as BookingStatus].label}`)
+        // Подтверждение — строкой под списком: там же и «Отменить».
+        setChanged(undo ? null : { id: slot.id, from: previous })
       } else {
-        if (previous) setStatusOverride({ id: slot.id, status: previous })
+        setStatusOverride({ id: slot.id, status: previous })
         toast.error(result.error ?? 'Не удалось сменить статус')
       }
     })
   }
+  const undone = changed && slot && changed.id === slot.id ? changed : null
 
   const removeLabel = canManage ? 'Снять бронь' : 'Отменить заявку'
 
@@ -114,7 +122,7 @@ export function SlotDetails({
       footer={
         slot ? (
           <>
-            <p className="mr-auto text-xs text-ink-muted">
+            <p className="mr-auto text-xs text-ink-muted max-sm:w-full">
               Забронировал: {slot.createdBy}
             </p>
             {canChange &&
@@ -141,7 +149,7 @@ export function SlotDetails({
                 <>
                   {slot.payments.length > 0 || slot.fact ? (
                     // С бронью пропали бы выплаты и стыковка — снять не даём.
-                    <span className="max-w-[210px] text-right text-xs leading-snug text-ink-muted">
+                    <span className="text-xs leading-snug text-ink-muted max-sm:mr-auto max-sm:max-w-[170px] sm:max-w-[210px] sm:text-right">
                       {slot.fact
                         ? 'Внесён факт — снять бронь нельзя'
                         : 'Есть поступления — снять бронь нельзя'}
@@ -183,7 +191,7 @@ export function SlotDetails({
             <span className="font-display text-[34px] font-bold leading-none tnum">
               {slot.time}
             </span>
-            <span className="flex min-w-0 flex-1 items-center gap-3 border-l border-current/25 pl-4">
+            <span className="order-last flex min-w-0 basis-full items-center gap-3 border-current/25 max-sm:border-t max-sm:pt-3 sm:order-none sm:flex-1 sm:basis-auto sm:border-l sm:pl-4">
               {slot.advertiserName && (
                 <BrandAvatar
                   name={slot.advertiserName}
@@ -192,10 +200,10 @@ export function SlotDetails({
                 />
               )}
               <span className="min-w-0">
-                <span className="block truncate text-[15px] font-bold">
+                <span className="block text-[15px] font-bold [overflow-wrap:anywhere] sm:truncate">
                   {slot.campaignName || slot.formatName}
                 </span>
-                <span className="block truncate text-[12.5px] opacity-80">
+                <span className="block text-[12.5px] [overflow-wrap:anywhere] sm:truncate">
                   {slot.advertiserName ?? 'Без рекламодателя'} ·{' '}
                   {slot.managerName ?? 'менеджер не назначен'}
                 </span>
@@ -210,8 +218,9 @@ export function SlotDetails({
                 <StatusSteps status={status} />
                 <SelectField
                   name="status"
+                  label="Статус брони"
                   value={status}
-                  onChange={changeStatus}
+                  onChange={(next) => changeStatus(next)}
                   disabled={pending}
                   options={BOOKING_STATUSES.map((s) => ({
                     value: s,
@@ -219,7 +228,29 @@ export function SlotDetails({
                   }))}
                 />
               </div>
-            ) : (
+            ) : null}
+            {canManage && (
+              <p
+                role="status"
+                className="flex min-h-5 flex-wrap items-center gap-x-2 text-[13px] text-ink-soft"
+              >
+                {undone && (
+                  <>
+                    Статус изменён: {BOOKING_STATUS[undone.from].label} →{' '}
+                    {BOOKING_STATUS[status].label}.
+                    <button
+                      type="button"
+                      onClick={() => changeStatus(undone.from, true)}
+                      disabled={pending}
+                      className="font-semibold text-indigo-600 underline-offset-2 hover:underline focus-ring"
+                    >
+                      Отменить
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+            {!canManage && (
               <>
                 <StatusSteps status={status} />
                 {status === 'sent' && (
@@ -304,25 +335,37 @@ export function SlotDetails({
 function StatusSteps({ status }: { status: BookingStatus }) {
   const index = BOOKING_STATUSES.indexOf(status)
   return (
-    <ol className="flex gap-1" aria-label="Этапы брони">
-      {BOOKING_STATUSES.map((s, i) => (
-        <li key={s} className="min-w-0 flex-1">
-          <span
-            className={cn(
-              'block h-1.5',
-              i <= index ? 'bg-indigo-500' : 'bg-ink/10',
-            )}
-          />
-          <span
-            className={cn(
-              'mt-1.5 block truncate text-[11px]',
-              i === index ? 'font-bold text-ink' : 'text-ink-muted',
-            )}
-          >
-            {BOOKING_STATUS[s].label}
-          </span>
-        </li>
-      ))}
-    </ol>
+    <div>
+      <ol className="flex gap-1" aria-label="Этапы брони">
+        {BOOKING_STATUSES.map((s, i) => (
+          <li key={s} className="min-w-0 flex-1">
+            <span
+              className={cn(
+                'block h-1.5',
+                i <= index ? 'bg-indigo-500' : 'bg-ink/10',
+              )}
+            />
+            <span
+              className={cn(
+                'mt-1.5 block truncate text-[11px] max-sm:sr-only',
+                i === index ? 'font-bold text-ink' : 'text-ink-muted',
+              )}
+            >
+              {BOOKING_STATUS[s].label}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {/* На телефоне пять подписей не помещаются — называем только текущую. */}
+      <p
+        aria-hidden="true"
+        className="mt-2 text-[13px] font-bold text-ink sm:hidden"
+      >
+        {BOOKING_STATUS[status].label}{' '}
+        <span className="font-normal text-ink-muted tnum">
+          · шаг {index + 1} из {BOOKING_STATUSES.length}
+        </span>
+      </p>
+    </div>
   )
 }

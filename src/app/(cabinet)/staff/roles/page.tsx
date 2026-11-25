@@ -76,7 +76,7 @@ async function Roles() {
                       <Minus
                         size={15}
                         aria-hidden="true"
-                        className="inline text-ink-muted/60"
+                        className="inline text-ink-muted"
                       />
                       <span className="sr-only">Нет</span>
                     </>

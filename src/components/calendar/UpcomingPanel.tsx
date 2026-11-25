@@ -439,14 +439,14 @@ function Card({
   passed: boolean
   onOpen: () => void
 }) {
-  const look = slotLook(slot.color, false)
+  const look = slotLook(slot.color, false, passed)
   return (
     <button
       type="button"
       onClick={onOpen}
       className={cn(
         '@container block w-full px-2.5 py-2 text-left transition-[filter] hover:brightness-95 focus-ring',
-        passed && 'opacity-65',
+        look.className,
       )}
       style={look.style}
     >
@@ -457,7 +457,7 @@ function Card({
         <span className="tnum">{slot.time}</span> · {slot.formatName}
       </span>
       <span className="mt-1 flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-[11.5px] opacity-80">
+        <span className="min-w-0 flex-1 truncate text-[11.5px]">
           {slot.advertiserName}
         </span>
         <StatusPill status={slot.status} />

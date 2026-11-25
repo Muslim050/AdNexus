@@ -24,7 +24,7 @@ interface Cell {
 }
 
 const INK = '#0B1A13'
-const MUTED = '#75827B'
+const MUTED = '#5A665F'
 const LINE = '#D5DAD7'
 const VERDICT_COLOR: Record<Verdict, string> = {
   waiting: '#1E6FD9',

@@ -33,7 +33,7 @@ export function DesktopNav() {
             aria-current={active ? 'page' : undefined}
             className={cn(
               'group relative flex items-center gap-2 px-3 text-[13px] font-semibold transition-colors focus-ring',
-              active ? 'text-white' : 'text-white/55 hover:text-white',
+              active ? 'text-white' : 'text-white/70 hover:text-white',
             )}
           >
             <span
@@ -41,7 +41,7 @@ export function DesktopNav() {
                 'font-mono text-[10px] font-semibold tracking-wider transition-colors',
                 active
                   ? 'text-lime-300'
-                  : 'text-white/30 group-hover:text-white/50',
+                  : 'text-white/50 group-hover:text-white/70',
               )}
             >
               {sectionNo(index)}
@@ -90,13 +90,13 @@ export function MobileNav({ onNavigate }: { onNavigate: () => void }) {
             aria-current={active ? 'page' : undefined}
             className={cn(
               'group flex items-center gap-4 border-b border-forest-line py-4 transition-colors focus-ring',
-              active ? 'text-white' : 'text-white/60 hover:text-white',
+              active ? 'text-white' : 'text-white/70 hover:text-white',
             )}
           >
             <span
               className={cn(
                 'font-mono text-[11px] font-semibold',
-                active ? 'text-lime-300' : 'text-white/35',
+                active ? 'text-lime-300' : 'text-white/50',
               )}
             >
               {sectionNo(index)}

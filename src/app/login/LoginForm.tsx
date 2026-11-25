@@ -1,11 +1,12 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Field'
 import { login, type LoginState } from '@/app/actions/auth'
+import { useFocusFirstError } from '@/lib/draft'
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState<LoginState, FormData>(
@@ -14,6 +15,8 @@ export function LoginForm() {
   )
   // Пароль набирают вслепую и ошибаются — глазик показывает набранное.
   const [passwordShown, setPasswordShown] = useState(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  useFocusFirstError(formRef, state)
 
   return (
     <motion.div
@@ -34,7 +37,12 @@ export function LoginForm() {
         Войдите под учётной записью, которую выдал менеджер AdNexus.
       </p>
 
-      <form action={formAction} className="mt-9 space-y-5" noValidate>
+      <form
+        ref={formRef}
+        action={formAction}
+        className="mt-9 space-y-5"
+        noValidate
+      >
         <Field label="Логин">
           <Input
             name="login"

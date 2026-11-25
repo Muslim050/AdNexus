@@ -7,6 +7,7 @@ import type { AdvertiserRow } from '@/lib/data/advertisers'
 import { AdvertiserDetails, type BrandContract } from './AdvertiserDetails'
 import { AdvertiserGrid } from './AdvertiserGrid'
 import { AdvertiserTable } from './AdvertiserTable'
+import { ListSearch, matches } from './ListSearch'
 
 /** Бренды таблицей или карточками; клик открывает карточку бренда. */
 export function AdvertisersView({
@@ -22,15 +23,34 @@ export function AdvertisersView({
   const [openId, setOpenId] = useState<string | null>(null)
   const [editing, setEditing] = useState({ id: '', open: false, round: 0 })
   const edited = rows.find((a) => a.id === editing.id)
-  const list = { rows, canEdit, onOpen: setOpenId }
+  const [query, setQuery] = useState('')
+  const found = rows.filter((a) =>
+    matches(query, [
+      a.name,
+      a.legalName,
+      a.contact,
+      a.email,
+      ...a.accounts.map((u) => u.login),
+    ]),
+  )
+  const list = { rows: found, canEdit, onOpen: setOpenId }
 
   return (
     <>
-      <ListOrGrid
-        storageKey="advertisers-grid"
-        table={<AdvertiserTable {...list} />}
-        grid={<AdvertiserGrid {...list} />}
+      <ListSearch
+        value={query}
+        onChange={setQuery}
+        placeholder="Бренд, юр. лицо, контакт или логин"
+        found={found.length}
+        total={rows.length}
       />
+      {found.length > 0 && (
+        <ListOrGrid
+          storageKey="advertisers-grid"
+          table={<AdvertiserTable {...list} />}
+          grid={<AdvertiserGrid {...list} />}
+        />
+      )}
       <AdvertiserDetails
         advertiser={rows.find((a) => a.id === openId) ?? null}
         contracts={contracts.filter((c) => c.advertiserId === openId)}

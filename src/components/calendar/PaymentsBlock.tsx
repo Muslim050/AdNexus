@@ -11,12 +11,14 @@ import { Plus, Trash2, Wallet } from 'lucide-react'
 import { addBookingPayment, deleteBookingPayment } from '@/app/actions/bookings'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
+import { FormError } from '@/components/ui/FormError'
 import { Field, Input } from '@/components/ui/Field'
 import { MoneyInput } from '@/components/ui/MoneyInput'
 import { Progress } from '@/components/ui/Progress'
 import { TimePicker } from '@/components/ui/TimePicker'
 import { useToast } from '@/components/ui/Toast'
 import { cn } from '@/lib/cn'
+import { useDraftRef, useFocusFirstError } from '@/lib/draft'
 import { formatSum, type FormState } from '@/lib/forms'
 import { todayTashkent } from '@/lib/week'
 import type { CalendarSlot } from './types'
@@ -58,7 +60,7 @@ export function PaymentsBlock({
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-3 gap-px border border-line bg-line">
+      <dl className="grid gap-px border border-line bg-line sm:grid-cols-3">
         <Money label="Сумма" value={amount} />
         <Money label="Оплачено" value={paid} tone="success" />
         <Money
@@ -138,11 +140,11 @@ function Money({
   tone?: 'success' | 'danger' | 'warning'
 }) {
   return (
-    <div className="bg-surface px-3 py-2.5">
+    <div className="flex items-baseline justify-between gap-3 bg-surface px-3 py-2.5 sm:block">
       <dt className="eyebrow text-ink-muted">{label}</dt>
       <dd
         className={cn(
-          'mt-0.5 truncate font-display text-[16px] font-bold tnum',
+          'whitespace-nowrap font-display text-[16px] font-bold tnum sm:mt-0.5 sm:truncate',
           tone === 'success' && 'text-success',
           tone === 'danger' && 'text-danger',
           tone === 'warning' && 'text-warning',
@@ -184,7 +186,7 @@ function PaymentRow({
         <p className="text-sm font-bold text-ink tnum">
           + {formatSum(payment.amount)}
         </p>
-        <p className="truncate text-xs text-ink-muted">
+        <p className="text-xs text-ink-muted [overflow-wrap:anywhere] sm:truncate">
           {momentFmt.format(new Date(payment.paidAt))} · {payment.createdBy}
           {payment.comment && ` · ${payment.comment}`}
         </p>
@@ -230,6 +232,7 @@ function PaymentForm({
   onDone: () => void
 }) {
   const toast = useToast()
+  const formRef = useDraftRef()
   const [state, action, pending] = useActionState<FormState, FormData>(
     async (prev, fd) => {
       const result = await addBookingPayment(prev, fd)
@@ -241,6 +244,7 @@ function PaymentForm({
     },
     {},
   )
+  useFocusFirstError(formRef, state)
   const errors = state.errors
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -251,6 +255,7 @@ function PaymentForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={submit}
       noValidate
       className="mb-3 space-y-4 border border-indigo-200 bg-indigo-50/50 p-4"
@@ -275,7 +280,7 @@ function PaymentForm({
       <Field label="Комментарий">
         <Input name="comment" placeholder="Например: предоплата 50 %" />
       </Field>
-      {state.error && <p className="text-sm text-danger">{state.error}</p>}
+      {state.error && <FormError>{state.error}</FormError>}
       <div className="flex justify-end gap-2">
         <Button
           variant="secondary"

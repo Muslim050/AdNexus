@@ -19,7 +19,8 @@ export const FACTS_PAGE_SIZE = 20
 /** Больше за раз не сверяем: столько публикаций — это годы работы. */
 const MAX_ROWS = 3000
 
-const planned = sql`((${bookings.date} + ${bookings.time}::time) at time zone 'Asia/Tashkent')`
+/** Момент выхода по плану — дата и время брони по Ташкенту. */
+export const planned = sql`((${bookings.date} + ${bookings.time}::time) at time zone 'Asia/Tashkent')`
 
 /**
  * Публикации, у которых прошло время по плану, с итогом стыковки. Итог

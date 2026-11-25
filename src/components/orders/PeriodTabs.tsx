@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
@@ -23,10 +23,13 @@ export function PeriodTabs({
   period,
   currentMonth,
   onPick,
+  action,
 }: {
   period: string
   currentMonth: string
   onPick: (period: string) => void
+  /** Кнопка раздела: на телефоне рядом с годом, на широком экране — в конце. */
+  action?: ReactNode
 }) {
   const shown = period === 'all' ? currentMonth : period
   const year = Number(shown.slice(0, 4))
@@ -49,7 +52,7 @@ export function PeriodTabs({
     )
 
   return (
-    <div className="mb-5 flex flex-col gap-2 lg:flex-row">
+    <div className="mb-5 flex flex-wrap items-center gap-2 lg:flex-nowrap">
       <div className="inline-flex w-fit shrink-0 items-center border border-line bg-surface p-1">
         <button
           type="button"
@@ -75,7 +78,7 @@ export function PeriodTabs({
         ref={strip}
         role="group"
         aria-label="Месяц"
-        className="no-scrollbar flex min-w-0 flex-1 gap-0.5 overflow-x-auto border border-line bg-surface p-1"
+        className="no-scrollbar order-last flex w-full min-w-0 gap-0.5 overflow-x-auto border border-line bg-surface p-1 lg:order-none lg:w-auto lg:flex-1"
       >
         <button
           type="button"
@@ -100,6 +103,7 @@ export function PeriodTabs({
           )
         })}
       </div>
+      {action && <div className="ml-auto shrink-0">{action}</div>}
     </div>
   )
 }

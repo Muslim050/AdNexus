@@ -110,7 +110,7 @@ export function FormatGallery({
 
             {format.includes.length > 0 && (
               <div>
-                <p className="eyebrow mb-2 text-white/50">Что входит</p>
+                <p className="eyebrow mb-2 text-white/60">Что входит</p>
                 <ul className="space-y-1.5">
                   {format.includes.map((item, k) => (
                     <li key={k} className="flex gap-2 text-sm text-white/90">

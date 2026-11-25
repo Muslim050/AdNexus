@@ -191,6 +191,7 @@ export function FactsView({
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] lg:w-[560px]">
           <SelectField
             name="brandFilter"
+            label="Бренд"
             value={query.advertiserId || 'all'}
             onChange={(v) =>
               go({ brand: v === 'all' ? null : v, contract: null })
@@ -202,6 +203,7 @@ export function FactsView({
           />
           <SelectField
             name="contractFilter"
+            label="Договор"
             value={query.contractId || 'all'}
             onChange={(v) => go({ contract: v === 'all' ? null : v })}
             options={[

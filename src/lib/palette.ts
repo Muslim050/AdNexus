@@ -18,11 +18,22 @@ export const FORMAT_COLORS = [
 export const isPaletteColor = (value: string) =>
   FORMAT_COLORS.some((c) => c.value === value)
 
-/** Цвет текста на заливке: тёмный на светлых (жёлтый), белый на остальных. */
-export function textOn(hex: string): string {
+const INK = '#0b1a13'
+
+/** Относительная яркость цвета по WCAG. */
+function luminance(hex: string) {
   const n = parseInt(hex.replace('#', ''), 16)
-  const r = n >> 16
-  const g = (n >> 8) & 0xff
-  const b = n & 0xff
-  return r * 0.299 + g * 0.587 + b * 0.114 > 170 ? '#0b1a13' : '#ffffff'
+  const [r, g, b] = [n >> 16, (n >> 8) & 0xff, n & 0xff].map((v) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** Цвет текста на заливке: белый или тёмный — какой контрастнее. */
+export function textOn(hex: string): string {
+  const fill = luminance(hex) + 0.05
+  const white = 1.05 / fill
+  const ink = fill / (luminance(INK) + 0.05)
+  return white >= ink ? '#ffffff' : INK
 }

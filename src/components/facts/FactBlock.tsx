@@ -14,6 +14,7 @@ import type { CalendarSlot } from '@/components/calendar/types'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
+import { FormError } from '@/components/ui/FormError'
 import { Field, Input, Textarea } from '@/components/ui/Field'
 import { FileCard, FileDrop } from '@/components/ui/FileDrop'
 import { MoneyInput } from '@/components/ui/MoneyInput'
@@ -21,6 +22,7 @@ import { SelectField } from '@/components/ui/SelectField'
 import { TimePicker } from '@/components/ui/TimePicker'
 import { useToast } from '@/components/ui/Toast'
 import { formatDay, formatMoment } from '@/lib/dates'
+import { useDraftRef, useFocusFirstError } from '@/lib/draft'
 import { LATE_MINUTES, VERDICT, checkFact } from '@/lib/facts'
 import { MAX_SCREENSHOT_BYTES } from '@/lib/files'
 import type { FormState } from '@/lib/forms'
@@ -183,6 +185,7 @@ function FactForm({
 }) {
   const { fact } = slot
   const toast = useToast()
+  const formRef = useDraftRef()
   const [outcome, setOutcome] = useState<string>(fact?.outcome ?? 'published')
   const [confirm, setConfirm] = useState(false)
   const [removing, startRemove] = useTransition()
@@ -197,6 +200,7 @@ function FactForm({
     },
     {},
   )
+  useFocusFirstError(formRef, state)
   const errors = state.errors
   const published = outcome === 'published'
   // По умолчанию — как в плане: обычно публикация выходит вовремя.
@@ -221,6 +225,7 @@ function FactForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={submit}
       noValidate
       className="space-y-4 border border-indigo-200 bg-indigo-50/50 p-4"
@@ -307,7 +312,7 @@ function FactForm({
         />
       </Field>
 
-      {state.error && <p className="text-sm text-danger">{state.error}</p>}
+      {state.error && <FormError>{state.error}</FormError>}
       <div className="flex flex-wrap items-center justify-end gap-2">
         {fact &&
           (confirm ? (

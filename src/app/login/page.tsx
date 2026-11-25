@@ -15,7 +15,7 @@ export default function LoginPage() {
 
         <div className="relative flex items-center justify-between">
           <Logo size={44} inverted />
-          <span className="eyebrow text-white/40">CRM Platform</span>
+          <span className="eyebrow text-white/60">CRM Platform</span>
         </div>
 
         <div className="relative my-10 max-w-[620px] animate-fade-up">
@@ -30,7 +30,7 @@ export default function LoginPage() {
           <NetworkMap />
         </div>
 
-        <div className="relative mt-10 flex items-center gap-2 text-[12px] text-white/40">
+        <div className="relative mt-10 flex items-center gap-2 text-[12px] text-white/60">
           <MapPin size={14} />
           Ташкент
         </div>

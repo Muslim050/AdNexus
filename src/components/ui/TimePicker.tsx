@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/shadcn/popover'
 import { cn } from '@/lib/cn'
-import { baseControl } from './Field'
+import { baseControl, useField, useFieldAria } from './Field'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const HOURS = Array.from({ length: 24 }, (_, h) => pad(h))
@@ -20,6 +20,8 @@ interface TimePickerProps {
   /** Шаг минут: 5 — 00, 05, 10… */
   step?: number
   invalid?: boolean
+  /** Вызывается с 'HH:MM' при каждом выборе. */
+  onChange?: (value: string) => void
 }
 
 /**
@@ -31,8 +33,15 @@ export function TimePicker({
   defaultValue = '10:00',
   step = 5,
   invalid,
+  onChange,
 }: TimePickerProps) {
-  const [value, setValue] = useState(defaultValue)
+  const [value, setOwn] = useState(defaultValue)
+  const setValue = (next: string) => {
+    setOwn(next)
+    onChange?.(next)
+  }
+  const field = useField()
+  const aria = useFieldAria(invalid)
   const [open, setOpen] = useState(false)
   const [hour, minute] = value.split(':')
 
@@ -47,13 +56,16 @@ export function TimePicker({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           type="button"
-          aria-invalid={invalid || undefined}
+          {...aria}
+          aria-labelledby={
+            field && aria.id ? `${field.labelId} ${aria.id}` : undefined
+          }
           className={cn(
             baseControl,
             'flex h-11 cursor-pointer items-center justify-between text-left tnum',
             open &&
               'border-indigo-500 shadow-[inset_0_-2px_0_var(--color-indigo-500)]',
-            invalid && 'border-danger',
+            aria['aria-invalid'] && 'border-danger',
           )}
         >
           <span className="font-semibold">{value}</span>

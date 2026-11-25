@@ -94,7 +94,7 @@ export function MiniMonth({
                   'relative flex h-8 items-center justify-center text-[12px] tnum transition-colors focus-ring',
                   current && 'bg-indigo-50',
                   first && 'shadow-[inset_2px_0_0_var(--color-indigo-500)]',
-                  outside ? 'text-ink-muted/60' : 'text-ink',
+                  outside ? 'text-ink-muted' : 'text-ink',
                   !isToday && 'hover:bg-ink/6',
                 )}
               >

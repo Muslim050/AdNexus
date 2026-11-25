@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
+import { userAgent } from 'next/server'
 import { CalendarView } from '@/components/calendar/CalendarView'
 import { FEED_MAX_PAGES, type ListPeriod } from '@/components/calendar/types'
 import { PageHeader } from '@/components/PageHeader'
@@ -20,8 +22,8 @@ import { isEditor } from '@/lib/roles'
 export const metadata: Metadata = { title: 'Календарь публикаций' }
 
 /**
- * Режим и дата задаются адресом: /calendar?d=2026-11-19 — неделя,
- * /calendar?view=day&d=2026-11-19 — день. Период списка справа — отдельно:
+ * Режим и дата задаются адресом: /calendar?view=week&d=2026-11-19 — неделя,
+ * view=day — день; без view — неделя, а на телефоне день. Период списка справа — отдельно:
  * list=day|week и from=2026-11-19; без list — все публикации лентой, up и
  * down — сколько её порций загружено до сегодня и после.
  */
@@ -39,6 +41,16 @@ export default function Page({ searchParams }: PageProps<'/calendar'>) {
   )
 }
 
+/** Режим из адреса; без него телефону — день: неделя шире его экрана. */
+function calendarView(
+  raw: string | string[] | undefined,
+  headerList: Headers,
+): 'day' | 'week' {
+  if (raw === 'day' || raw === 'week') return raw
+  const { device } = userAgent({ headers: headerList })
+  return device.type === 'mobile' ? 'day' : 'week'
+}
+
 const feedPages = (raw: string | string[] | undefined) =>
   Math.min(Math.max(Math.trunc(Number(raw)) || 1, 1), FEED_MAX_PAGES)
 
@@ -47,7 +59,7 @@ async function Calendar({
 }: Pick<PageProps<'/calendar'>, 'searchParams'>) {
   const user = await requireSection('/calendar')
   const { d, view: rawView, list, from: rawFrom, up, down } = await searchParams
-  const view = rawView === 'day' ? 'day' : 'week'
+  const view = calendarView(rawView, await headers())
   const today = todayTashkent()
   const anchor = isIsoDate(d) ? d : today
   const weekStart = startOfWeek(anchor)

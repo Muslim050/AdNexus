@@ -35,7 +35,8 @@ export const VERDICT: Record<
   waiting: {
     label: 'Ожидает стыковки',
     many: 'Ожидают стыковки',
-    tone: 'indigo',
+    // Синий, а не зелёный: зелёный — «Стыковалась», а это ещё ждёт факта.
+    tone: 'info',
   },
   mismatch: { label: 'Расхождение', many: 'Расхождения', tone: 'warning' },
   matched: { label: 'Стыковалась', many: 'Стыковались', tone: 'success' },

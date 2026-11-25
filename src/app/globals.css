@@ -30,7 +30,8 @@
 
   --color-ink: #0b1a13;
   --color-ink-soft: #3d4b44;
-  --color-ink-muted: #75827b;
+  /* Не светлее: 4,5:1 и на бумаге, и на серых плашках (WCAG AA). */
+  --color-ink-muted: #5a665f;
 
   --color-line: rgba(11, 26, 19, 0.12);
 
@@ -58,9 +59,11 @@
   --color-lime-500: #1eae6a;
   --color-lime-600: #117a48;
 
-  --color-success: #12894c;
-  --color-warning: #c77800;
-  --color-danger: #d93a3f;
+  --color-success: #0e7440;
+  --color-warning: #8f5600;
+  --color-danger: #c42d33;
+  /* Ждёт действия: «Отправлен», «Ожидает стыковки» — синий, как в отчёте Excel. */
+  --color-info: #1a5fb8;
 
   /* Токены в именах shadcn/ui — на случай компонентов с ui.shadcn.com.
      Свои имена не переименовываем, а сопоставляем. */

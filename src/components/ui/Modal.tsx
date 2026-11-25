@@ -1,15 +1,37 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { AlertDialog } from '@base-ui/react/alert-dialog'
+import { Dialog } from '@base-ui/react/dialog'
 import { X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { useIsClient } from '@/lib/useIsClient'
+import { hasDraft } from '@/lib/draft'
 import { fileHref } from '@/features/files/download'
+import { Button } from './Button'
 
-// Сколько держим модалку в DOM после закрытия — ровно на время анимации.
-const CLOSE_MS = 220
+const CloseCtx = createContext<() => void>(() => {})
+
+/** Закрыть окно, в котором стоит компонент, — с вопросом о несохранённом. */
+export const useModalClose = () => useContext(CloseCtx)
+
+// Первое поле формы: с него начинают, а не с крестика в шапке.
+const FIRST_FIELD =
+  'form :is(input, textarea, button):not([type="hidden"]):not([tabindex="-1"]):not([aria-hidden="true"]):not(:disabled)'
+
+const backdrop =
+  'fixed inset-0 z-50 bg-forest/55 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none'
+
+const dialogMotion =
+  'transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.2,0.9,0.3,1)] data-starting-style:translate-y-3 data-starting-style:opacity-0 data-ending-style:translate-y-2 data-ending-style:opacity-0 motion-reduce:transition-none'
+
+const drawerMotion =
+  'transition-[translate] duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1)] data-starting-style:translate-x-full data-ending-style:translate-x-full data-ending-style:duration-200 data-ending-style:ease-in motion-reduce:transition-none'
 
 // Формы и карточки открываются боковой панелью во всю высоту экрана —
 // ширина зависит от размера. Короткие предупреждения (sm или без тела)
@@ -52,42 +74,15 @@ export function Modal({
   const hasBody = children != null && children !== false
   const asDialog = size === 'sm' || !hasBody
 
-  // Размонтируем сами, по таймеру: AnimatePresence в связке с порталом
-  // доигрывала анимацию закрытия, но оставляла оверлей в DOM — он перекрывал
-  // страницу и гасил все клики.
-  const isClient = useIsClient()
-  const [mounted, setMounted] = useState(open)
-  // Открытие монтирует сразу, ещё в рендере — без лишнего прохода эффекта.
-  if (open && !mounted) setMounted(true)
+  const popup = useRef<HTMLDivElement>(null)
+  const [asking, setAsking] = useState(false)
 
-  useEffect(() => {
-    if (open) return
-    const timer = setTimeout(() => setMounted(false), CLOSE_MS)
-    return () => clearTimeout(timer)
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      // Esc в открытом поповере или списке закрывает только его, а не панель.
-      if (
-        document.querySelector(
-          '[data-slot="popover-content"], [data-slot="select-content"]',
-        )
-      )
-        return
-      onClose?.()
-    }
-    window.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [open, onClose])
-
-  if (!mounted || !isClient) return null
+  // Esc, крестик, фон и «Отмена» — через одну проверку: введённое не теряем.
+  const requestClose = () => {
+    const forms = popup.current?.querySelectorAll('form') ?? []
+    if ([...forms].some(hasDraft)) setAsking(true)
+    else onClose()
+  }
 
   const mark =
     logo && typeof logo !== 'string' ? (
@@ -118,7 +113,7 @@ export function Modal({
   const header = (
     <div
       className={cn(
-        'flex items-start gap-3.5 px-6',
+        'flex items-start gap-3.5 px-4 sm:px-6',
         asDialog
           ? 'pb-2 pt-6'
           : 'border-b border-forest-line bg-forest py-5 text-white',
@@ -126,28 +121,26 @@ export function Modal({
     >
       {mark}
       <div className="min-w-0 flex-1 pt-0.5">
-        <h2
+        <Dialog.Title
           className={cn(
             'font-display text-lg font-bold leading-snug tracking-[-0.015em]',
             asDialog ? 'text-ink' : 'text-white',
           )}
         >
           {title}
-        </h2>
+        </Dialog.Title>
         {description && (
-          <p
+          <Dialog.Description
             className={cn(
               'mt-1 text-[13px] leading-relaxed',
               asDialog ? 'text-ink-muted' : 'text-white/60',
             )}
           >
             {description}
-          </p>
+          </Dialog.Description>
         )}
       </div>
-      <button
-        type="button"
-        onClick={onClose}
+      <Dialog.Close
         aria-label="Закрыть"
         className={cn(
           '-mr-2 flex h-9 w-9 shrink-0 items-center justify-center transition-colors focus-ring',
@@ -157,18 +150,20 @@ export function Modal({
         )}
       >
         <X size={19} />
-      </button>
+      </Dialog.Close>
     </div>
   )
 
   const body = hasBody && (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
+    <div className="min-h-0 flex-1 scroll-pb-28 overflow-y-auto px-4 py-5 sm:px-6">
+      {children}
+    </div>
   )
 
   const foot = footer && (
     <div
       className={cn(
-        'flex items-center justify-end gap-2 px-6 py-4',
+        'flex flex-wrap items-center justify-end gap-2 px-4 py-4 sm:px-6',
         asDialog ? 'pb-6' : 'border-t border-line bg-paper',
       )}
     >
@@ -176,58 +171,97 @@ export function Modal({
     </div>
   )
 
-  return createPortal(
-    <motion.div
-      className={cn(
-        'fixed inset-0 z-50 flex',
-        asDialog ? 'items-center justify-center p-4' : 'justify-end',
-        // Пока доигрывает закрытие, кликам мешать нельзя.
-        !open && 'pointer-events-none',
-      )}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: open ? 1 : 0 }}
-      transition={{ duration: CLOSE_MS / 1000 }}
-    >
-      <div className="absolute inset-0 bg-forest/55" onClick={onClose} />
+  return (
+    <Dialog.Root open={open} onOpenChange={(next) => !next && requestClose()}>
+      <Dialog.Portal>
+        <Dialog.Backdrop forceRender className={backdrop} />
+        <Dialog.Viewport
+          className={cn(
+            'fixed inset-0 z-50 flex',
+            asDialog ? 'items-center justify-center p-3 sm:p-4' : 'justify-end',
+          )}
+        >
+          <Dialog.Popup
+            ref={popup}
+            // На тач-экране — само окно: поле сразу подняло бы клавиатуру.
+            initialFocus={() =>
+              window.matchMedia('(pointer: coarse)').matches
+                ? popup.current
+                : (popup.current?.querySelector<HTMLElement>(FIRST_FIELD) ??
+                  popup.current)
+            }
+            className={cn(
+              'relative flex w-full flex-col bg-surface shadow-lift outline-none',
+              asDialog
+                ? cn(
+                    'max-h-[92dvh] overflow-hidden border-t-4 border-indigo-500',
+                    wide ? 'max-w-2xl' : 'max-w-md',
+                    dialogMotion,
+                  )
+                : cn('h-full', drawerWidths[size], drawerMotion),
+            )}
+          >
+            <CloseCtx.Provider value={requestClose}>
+              {header}
+              {body}
+              {foot}
+            </CloseCtx.Provider>
+            <LeaveDialog
+              open={open && asking}
+              onStay={() => setAsking(false)}
+              onLeave={() => {
+                setAsking(false)
+                onClose()
+              }}
+            />
+          </Dialog.Popup>
+        </Dialog.Viewport>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
 
-      {asDialog ? (
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          initial={{ y: 12, opacity: 0 }}
-          animate={open ? { y: 0, opacity: 1 } : { y: 8, opacity: 0 }}
-          transition={{ duration: 0.2, ease: [0.2, 0.9, 0.3, 1] }}
-          className={cn(
-            'relative flex max-h-[92vh] w-full flex-col overflow-hidden border-t-4 border-indigo-500 bg-surface shadow-lift',
-            wide ? 'max-w-2xl' : 'max-w-md',
-          )}
-        >
-          {header}
-          {body}
-          {foot}
-        </motion.div>
-      ) : (
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          initial={{ x: '100%' }}
-          animate={{ x: open ? 0 : '100%' }}
-          transition={
-            open
-              ? { type: 'spring', stiffness: 360, damping: 38 }
-              : { duration: CLOSE_MS / 1000, ease: 'easeIn' }
-          }
-          className={cn(
-            'relative flex h-full w-full flex-col bg-surface shadow-lift',
-            drawerWidths[size] ?? drawerWidths.md,
-          )}
-        >
-          {header}
-          {body}
-          {foot}
-        </motion.div>
-      )}
-    </motion.div>,
-    document.body,
+/** Вопрос перед закрытием окна с несохранёнными данными. */
+function LeaveDialog({
+  open,
+  onStay,
+  onLeave,
+}: {
+  open: boolean
+  onStay: () => void
+  onLeave: () => void
+}) {
+  const stay = useRef<HTMLButtonElement>(null)
+  return (
+    <AlertDialog.Root open={open} onOpenChange={(next) => !next && onStay()}>
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop forceRender className={backdrop} />
+        <AlertDialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <AlertDialog.Popup
+            // Enter по привычке не должен стирать введённое.
+            initialFocus={stay}
+            className={cn(
+              'w-full max-w-md border-t-4 border-indigo-500 bg-surface p-6 shadow-lift outline-none',
+              dialogMotion,
+            )}
+          >
+            <AlertDialog.Title className="font-display text-lg font-bold leading-snug tracking-[-0.015em] text-ink">
+              Закрыть без сохранения?
+            </AlertDialog.Title>
+            <AlertDialog.Description className="mt-1.5 text-sm leading-relaxed text-ink-soft">
+              Введённые данные пропадут.
+            </AlertDialog.Description>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <Button variant="danger" onClick={onLeave}>
+                Закрыть без сохранения
+              </Button>
+              <AlertDialog.Close ref={stay} render={<Button />}>
+                Вернуться к форме
+              </AlertDialog.Close>
+            </div>
+          </AlertDialog.Popup>
+        </AlertDialog.Viewport>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   )
 }

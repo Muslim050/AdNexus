@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bell, ChevronDown, LogOut, Menu, X } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { Avatar } from '@/components/ui/Avatar'
 import { useSessionUser } from '@/components/session/SessionProvider'
@@ -20,9 +20,12 @@ import { DesktopNav } from './Navigation'
 export function Topbar({
   onBurger,
   mobileNavOpen,
+  bell,
 }: {
   onBurger: () => void
   mobileNavOpen: boolean
+  /** Колокольчик — только у тех, кому есть что разбирать. */
+  bell?: ReactNode
 }) {
   const user = useSessionUser()
   const pathname = usePathname()
@@ -62,13 +65,7 @@ export function Topbar({
         <DesktopNav />
 
         <div className="ml-auto flex items-center gap-1">
-          <button
-            aria-label="Уведомления"
-            className="relative flex h-10 w-10 items-center justify-center text-white/60 transition-colors hover:bg-white/5 hover:text-white focus-ring"
-          >
-            <Bell size={18} />
-            <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 bg-lime-300" />
-          </button>
+          {bell}
 
           <div className="relative" ref={ref}>
             <button
@@ -84,7 +81,7 @@ export function Topbar({
                 <span className="block truncate text-[12.5px] font-semibold leading-tight">
                   {title}
                 </span>
-                <span className="block truncate text-[11px] leading-tight text-white/45">
+                <span className="block truncate text-[11px] leading-tight text-white/60">
                   {subtitle}
                 </span>
               </span>
